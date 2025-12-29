@@ -37,17 +37,18 @@ export default function DocumentsPage() {
     },
   })
 
-  const getFileIcon = (type: string) => {
+  const getFileIcon = (type: string | null) => {
+    if (!type) return '📎'
     if (type.includes('pdf')) return '📄'
     if (type.includes('image')) return '🖼️'
     if (type.includes('word') || type.includes('document')) return '📝'
     return '📎'
   }
 
-  const handleDownload = (url: string, nom: string) => {
+  const handleDownload = (url: string, nom: string | null) => {
     const link = document.createElement('a')
     link.href = url
-    link.download = nom
+    link.download = nom || 'document'
     link.target = '_blank'
     document.body.appendChild(link)
     link.click()
@@ -87,7 +88,7 @@ export default function DocumentsPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Documents PDF</p>
                 <p className="text-2xl font-bold">
-                  {documents?.filter((d) => d.type.includes('pdf')).length || 0}
+                  {documents?.filter((d) => d.type?.includes('pdf')).length || 0}
                 </p>
               </div>
               <span className="text-3xl">📄</span>
@@ -101,7 +102,7 @@ export default function DocumentsPage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Images</p>
                 <p className="text-2xl font-bold">
-                  {documents?.filter((d) => d.type.includes('image')).length || 0}
+                  {documents?.filter((d) => d.type?.includes('image')).length || 0}
                 </p>
               </div>
               <span className="text-3xl">🖼️</span>
@@ -146,7 +147,7 @@ export default function DocumentsPage() {
                     <TableCell className="font-medium">{document.nom}</TableCell>
                     <TableCell>
                       {document.souscription?.client
-                        ? `${document.souscription.client.nom} ${document.souscription.client.prenom}`
+                        ? document.souscription.client.fullname
                         : 'N/A'}
                     </TableCell>
                     <TableCell>
@@ -159,16 +160,18 @@ export default function DocumentsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(document.created_at), 'dd MMM yyyy HH:mm', {
-                        locale: fr,
-                      })}
+                      {document.created_at
+                        ? format(new Date(document.created_at), 'dd MMM yyyy HH:mm', {
+                            locale: fr,
+                          })
+                        : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handlePreview(document.url)}
+                          onClick={() => handlePreview(document.document_url)}
                           title="Prévisualiser"
                         >
                           <Eye className="h-4 w-4" />
@@ -176,7 +179,7 @@ export default function DocumentsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDownload(document.url, document.nom)}
+                          onClick={() => handleDownload(document.document_url, document.nom)}
                           title="Télécharger"
                         >
                           <Download className="h-4 w-4" />

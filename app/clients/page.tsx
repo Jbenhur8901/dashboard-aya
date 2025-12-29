@@ -192,7 +192,7 @@ export default function ClientsPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              Historique - {selectedClient?.nom} {selectedClient?.prenom}
+              Historique - {selectedClient?.fullname}
             </DialogTitle>
             <DialogDescription>
               Toutes les souscriptions de ce client
@@ -205,7 +205,7 @@ export default function ClientsPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Téléphone</p>
-                  <p className="font-medium">{selectedClient?.telephone_whatsapp}</p>
+                  <p className="font-medium">{selectedClient?.whatsappnumber}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Profession</p>
@@ -213,11 +213,11 @@ export default function ClientsPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Ville</p>
-                  <p className="font-medium">{selectedClient?.ville}</p>
+                  <p className="font-medium">{selectedClient?.city}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Statut</p>
-                  <Badge variant="outline">{selectedClient?.statut}</Badge>
+                  <Badge variant="outline">{selectedClient?.status}</Badge>
                 </div>
               </div>
             </div>
@@ -245,18 +245,18 @@ export default function ClientsPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatCurrency(souscription.prime_ttc)}</p>
+                        <p className="font-medium">{formatCurrency(souscription.prime_ttc || 0)}</p>
                         <Badge
                           variant={
-                            souscription.statut === 'validee'
+                            souscription.status === 'validee'
                               ? 'success'
-                              : souscription.statut === 'en_attente'
+                              : souscription.status === 'en_attente'
                               ? 'warning'
                               : 'default'
                           }
                           className="text-xs"
                         >
-                          {souscription.statut}
+                          {souscription.status}
                         </Badge>
                       </div>
                     </div>

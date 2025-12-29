@@ -1,6 +1,6 @@
-# Deployment Guide - AssurDash Application
+# Deployment Guide - aya Application
 
-Ce guide détaille le déploiement de l'application AssurDash sur votre serveur AWS Lightsail existant (où yanola_ai_frontend est déjà déployé).
+Ce guide détaille le déploiement de l'application aya sur votre serveur AWS Lightsail existant (où yanola_ai_frontend est déjà déployé).
 
 ## Table des matières
 
@@ -31,7 +31,7 @@ Votre serveur Lightsail doit déjà avoir:
 Vous aurez besoin de:
 - Accès SSH au serveur Lightsail
 - Un projet Supabase (nouveau ou existant)
-- Un sous-domaine pour cette application (ex: `dashboard.yanolaai.com` ou `assurdash.yanolaai.com`)
+- Un sous-domaine pour cette application (ex: `dashboard.yanolaai.com` ou `aya.yanolaai.com`)
 - Accès au repository GitHub
 
 ---
@@ -42,7 +42,7 @@ Vous aurez besoin de:
 
 **Option A: Nouveau projet**
 1. Allez sur [Supabase Dashboard](https://app.supabase.com/)
-2. Créez un nouveau projet nommé `assurdash` ou `test`
+2. Créez un nouveau projet nommé `aya` ou `test`
 3. Notez vos credentials:
    - Project URL: `https://xxxxx.supabase.co`
    - Anon/Public Key
@@ -235,39 +235,77 @@ WHERE email = 'votre-email@example.com';
 
 ---
 
-## Étape 2: Se connecter au serveur
+## Étape 2: Se connecter au serveur et créer un nouvel utilisateur
+
+### 2.1 Se connecter au serveur
 
 ```bash
-# Se connecter via SSH
+# Se connecter via SSH avec l'utilisateur ubuntu (ou yanola-platform)
 ssh -i /path/to/your-key.pem ubuntu@YOUR_INSTANCE_IP
-
-# Ou si vous utilisez l'utilisateur yanola-platform
-ssh -i /path/to/your-key.pem yanola-platform@YOUR_INSTANCE_IP
 ```
+
+### 2.2 Créer un nouvel utilisateur pour aya
+
+```bash
+# Créer l'utilisateur aya
+sudo adduser aya
+
+# Suivez les instructions:
+# - Entrez un mot de passe sécurisé
+# - Les autres champs (Full Name, etc.) sont optionnels, appuyez sur Enter
+
+# Ajouter l'utilisateur au groupe sudo (recommandé pour gérer Nginx et SSL)
+sudo usermod -aG sudo aya
+
+# Vérifier que l'utilisateur est créé
+id aya
+
+# Créer le répertoire .ssh pour permettre la connexion SSH directe (optionnel)
+sudo mkdir -p /home/aya/.ssh
+sudo chown aya:aya /home/aya/.ssh
+sudo chmod 700 /home/aya/.ssh
+```
+
+**Note:** Si vous souhaitez vous connecter directement avec l'utilisateur `aya` via SSH (au lieu de passer par `ubuntu` puis `su`), vous devrez copier votre clé SSH publique dans `/home/aya/.ssh/authorized_keys`.
+
+### 2.3 Se connecter avec le nouvel utilisateur
+
+```bash
+# Basculer vers l'utilisateur aya
+su - aya
+```
+
+**Avantages de cette approche:**
+- ✅ Isolation complète entre yanola_ai_frontend et aya
+- ✅ Meilleure sécurité (si une app est compromise, l'autre est protégée)
+- ✅ Gestion des permissions et des processus séparée
+- ✅ Logs et fichiers organisés par projet
 
 ---
 
 ## Étape 3: Cloner le projet
 
-### 3.1 Naviguer vers le répertoire apps
+### 3.1 Créer le répertoire de travail
 
 ```bash
+# Créer le répertoire apps pour ce projet
+mkdir -p ~/apps
 cd ~/apps
 ```
 
-Vous devriez déjà avoir `yanola_ai_frontend` dans ce répertoire.
+**Note:** L'utilisateur `yanola-platform` a son propre dossier `~/apps/yanola_ai_frontend`, et l'utilisateur `aya` aura maintenant son propre dossier `~/apps/aya`. Les deux projets sont complètement isolés.
 
 ### 3.2 Cloner le nouveau repository
 
 ```bash
 # Cloner le repository
-git clone https://github.com/Jbenhur8901/test.git assurdash
+git clone https://github.com/Jbenhur8901/dashboard-aya.git aya
 
 # Entrer dans le répertoire
-cd assurdash
+cd aya
 ```
 
-**Note:** J'ai renommé le dossier en `assurdash` pour plus de clarté. Vous pouvez utiliser le nom que vous voulez.
+**Note:** J'ai renommé le dossier en `aya` pour plus de clarté. Vous pouvez utiliser le nom que vous voulez.
 
 ### 3.3 Vérifier la structure
 
@@ -364,10 +402,10 @@ nano ecosystem.config.js
 ```javascript
 module.exports = {
   apps: [{
-    name: 'assurdash',
+    name: 'aya',
     script: 'npm',
     args: 'start',
-    cwd: '/home/yanola-platform/apps/assurdash',
+    cwd: '/home/aya/apps/aya',  // Chemin avec le nouvel utilisateur
     instances: 1,
     autorestart: true,
     watch: false,
@@ -400,11 +438,21 @@ mkdir -p logs
 pm2 start ecosystem.config.js
 ```
 
-### 6.5 Sauvegarder la configuration PM2
+### 6.5 Configurer PM2 au démarrage pour cet utilisateur
 
 ```bash
+# Sauvegarder la liste des processus PM2
 pm2 save
+
+# Générer le script de démarrage pour l'utilisateur aya
+pm2 startup systemd
+
+# Copier et exécuter la commande que PM2 affiche
+# Elle ressemblera à quelque chose comme:
+# sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u aya --hp /home/aya
 ```
+
+**Important:** Vous devrez exécuter la commande `sudo` générée par PM2. Cette commande configure PM2 pour démarrer automatiquement les applications de l'utilisateur `aya` au redémarrage du serveur.
 
 ### 6.6 Vérifier le statut
 
@@ -412,13 +460,13 @@ pm2 save
 pm2 status
 ```
 
-Vous devriez voir **deux** applications:
-- `yanola_ai_frontend` (port 3000)
-- `assurdash` (port 3001)
+Vous devriez voir l'application `aya` (port 3001).
+
+**Note:** Pour voir les processus de `yanola_ai_frontend`, vous devrez vous connecter avec l'utilisateur `yanola-platform` et exécuter `pm2 status`. Chaque utilisateur Linux a sa propre liste de processus PM2.
 
 ```bash
 # Voir les logs de la nouvelle application
-pm2 logs assurdash --lines 50
+pm2 logs aya --lines 50
 ```
 
 ---
@@ -431,7 +479,7 @@ pm2 logs assurdash --lines 50
 
 1. Allez dans votre registrar de domaine
 2. Créez un enregistrement **A**:
-   - Nom: `dashboard` (ou `assurdash`)
+   - Nom: `dashboard` (ou `aya`)
    - Type: `A`
    - Valeur: `VOTRE_IP_LIGHTSAIL`
    - TTL: `300`
@@ -441,7 +489,7 @@ Attendez 5-15 minutes pour la propagation DNS.
 ### 7.2 Créer la configuration Nginx
 
 ```bash
-sudo nano /etc/nginx/sites-available/assurdash
+sudo nano /etc/nginx/sites-available/aya
 ```
 
 ### 7.3 Ajouter la configuration
@@ -452,10 +500,10 @@ server {
     server_name dashboard.yanolaai.com www.dashboard.yanolaai.com;
 
     # Ou utilisez votre sous-domaine choisi:
-    # server_name assurdash.yanolaai.com www.assurdash.yanolaai.com;
+    # server_name aya.yanolaai.com www.aya.yanolaai.com;
 
     location / {
-        proxy_pass http://localhost:3001;  # Port 3001 pour assurdash
+        proxy_pass http://localhost:3001;  # Port 3001 pour aya
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -482,7 +530,7 @@ Sauvegardez et quittez.
 
 ```bash
 # Créer le lien symbolique
-sudo ln -s /etc/nginx/sites-available/assurdash /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/aya /etc/nginx/sites-enabled/
 
 # Tester la configuration
 sudo nginx -t
@@ -533,8 +581,12 @@ Ouvrez votre navigateur:
 ### Mettre à jour l'application
 
 ```bash
+# Se connecter avec l'utilisateur aya
+ssh -i /path/to/key.pem ubuntu@YOUR_IP
+su - aya
+
 # Aller dans le répertoire
-cd ~/apps/assurdash
+cd ~/apps/aya
 
 # Récupérer les dernières modifications
 git pull
@@ -546,10 +598,10 @@ npm install
 npm run build
 
 # Redémarrer avec PM2
-pm2 restart assurdash
+pm2 restart aya
 
 # Vérifier les logs
-pm2 logs assurdash --lines 20
+pm2 logs aya --lines 20
 ```
 
 ### Commandes utiles
@@ -558,17 +610,17 @@ pm2 logs assurdash --lines 20
 # Voir le statut de toutes les applications
 pm2 status
 
-# Voir les logs d'assurdash
-pm2 logs assurdash
+# Voir les logs d'aya
+pm2 logs aya
 
-# Redémarrer assurdash
-pm2 restart assurdash
+# Redémarrer aya
+pm2 restart aya
 
-# Arrêter assurdash
-pm2 stop assurdash
+# Arrêter aya
+pm2 stop aya
 
-# Supprimer assurdash de PM2
-pm2 delete assurdash
+# Supprimer aya de PM2
+pm2 delete aya
 
 # Vérifier l'utilisation des ressources
 pm2 monit
@@ -587,12 +639,33 @@ df -h
 # Utilisation mémoire
 free -h
 
-# Processus Node.js
-ps aux | grep node
+# Processus Node.js de tous les utilisateurs (nécessite sudo)
+sudo ps aux | grep node
 
 # Vérifier les ports utilisés
-sudo lsof -i :3000  # yanola_ai_frontend
-sudo lsof -i :3001  # assurdash
+sudo lsof -i :3000  # yanola_ai_frontend (utilisateur yanola-platform)
+sudo lsof -i :3001  # aya (utilisateur aya)
+
+# Voir tous les processus PM2 de tous les utilisateurs
+sudo pm2 list
+```
+
+### Surveiller les deux applications
+
+```bash
+# Option 1: Depuis l'utilisateur ubuntu avec sudo
+sudo pm2 list  # Voir tous les processus PM2 de tous les utilisateurs
+
+# Option 2: Basculer entre les utilisateurs
+# Pour voir les processus de yanola_ai_frontend
+su - yanola-platform
+pm2 status
+exit
+
+# Pour voir les processus d'aya
+su - aya
+pm2 status
+exit
 ```
 
 ---
@@ -603,7 +676,7 @@ sudo lsof -i :3001  # assurdash
 
 ```bash
 # Vérifier les logs PM2
-pm2 logs assurdash --lines 100
+pm2 logs aya --lines 100
 
 # Vérifier si le port 3001 est utilisé
 sudo lsof -i :3001
@@ -612,7 +685,7 @@ sudo lsof -i :3001
 sudo kill -9 <PID>
 
 # Redémarrer
-pm2 restart assurdash
+pm2 restart aya
 ```
 
 ### Erreur de connexion Supabase
@@ -651,7 +724,7 @@ sudo certbot certificates
 sudo certbot renew
 
 # Vérifier la configuration Nginx
-sudo cat /etc/nginx/sites-available/assurdash
+sudo cat /etc/nginx/sites-available/aya
 ```
 
 ### Manque de mémoire
@@ -701,6 +774,102 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 ---
 
+## Gestion Multi-Utilisateurs
+
+### Vue d'ensemble
+
+Avec cette architecture, vous avez deux utilisateurs Linux séparés:
+
+| Aspect | yanola-platform | aya |
+|--------|----------------|-----------|
+| Application | yanola_ai_frontend | aya |
+| Dossier | /home/yanola-platform/apps/yanola_ai_frontend | /home/aya/apps/aya |
+| Port | 3000 | 3001 |
+| PM2 | Instance séparée | Instance séparée |
+| Domaine | platform.yanolaai.com | dashboard.yanolaai.com |
+
+### Avantages de cette approche
+
+1. **Isolation:** Si une application a un problème, l'autre n'est pas affectée
+2. **Sécurité:** Chaque utilisateur ne peut accéder qu'à ses propres fichiers
+3. **Clarté:** Les logs, processus et fichiers sont bien organisés
+4. **Permissions:** Gestion granulaire des droits d'accès
+
+### Bonnes pratiques
+
+```bash
+# ✅ FAIRE: Se connecter avec le bon utilisateur pour chaque tâche
+su - aya && cd ~/apps/aya && pm2 logs aya
+
+# ❌ NE PAS FAIRE: Essayer de gérer l'application d'un autre utilisateur
+su - yanola-platform && pm2 restart aya  # Cela ne fonctionnera pas!
+
+# ✅ FAIRE: Utiliser sudo pour voir tous les processus
+sudo pm2 list  # Voir tous les processus PM2
+
+# ✅ FAIRE: Utiliser sudo pour les tâches système (Nginx, SSL, etc.)
+sudo systemctl restart nginx
+sudo certbot renew
+```
+
+---
+
+## FAQ
+
+### Comment ajouter une troisième application?
+
+1. Créer un nouvel utilisateur (ex: `newapp`)
+2. Suivre les mêmes étapes que pour aya
+3. Utiliser un nouveau port (ex: 3002)
+4. Configurer un nouveau virtual host Nginx
+
+### Puis-je voir les logs des deux applications en même temps?
+
+Oui, avec sudo:
+```bash
+# Logs combinés de tous les processus PM2
+sudo pm2 logs
+
+# Logs d'une application spécifique
+sudo pm2 logs aya
+sudo pm2 logs yanola_ai_frontend
+```
+
+### Comment sauvegarder les deux applications?
+
+```bash
+# Pour yanola_ai_frontend
+su - yanola-platform
+cd ~/apps/yanola_ai_frontend
+tar -czf ~/yanola-backup-$(date +%Y%m%d).tar.gz .
+exit
+
+# Pour aya
+su - aya
+cd ~/apps/aya
+tar -czf ~/aya-backup-$(date +%Y%m%d).tar.gz .
+exit
+```
+
+### Les deux applications partagent-elles la même base de données Supabase?
+
+Cela dépend de votre configuration:
+- **Même projet Supabase:** Utilisez les mêmes credentials dans `.env.local` des deux applications
+- **Projets séparés:** Utilisez des credentials différents pour chaque application
+
+### Comment redémarrer les deux applications en même temps?
+
+```bash
+# Option 1: Avec sudo (recommandé)
+sudo pm2 restart all
+
+# Option 2: Manuellement pour chaque utilisateur
+su - yanola-platform && pm2 restart yanola_ai_frontend && exit
+su - aya && pm2 restart aya && exit
+```
+
+---
+
 ## Sécurité
 
 ### Checklist de sécurité
@@ -737,45 +906,81 @@ Après ce déploiement, votre serveur Lightsail aura:
 ```
 Serveur Lightsail (13.39.245.32)
 │
-├── Application 1: yanola_ai_frontend
-│   ├── Port: 3000
-│   ├── PM2 Process: yanola_ai_frontend
-│   ├── Nginx: platform.yanolaai.com
-│   └── SSL: ✓
+├── Utilisateur: yanola-platform
+│   └── Application: yanola_ai_frontend
+│       ├── Dossier: /home/yanola-platform/apps/yanola_ai_frontend
+│       ├── Port: 3000
+│       ├── PM2 Process: yanola_ai_frontend
+│       ├── Nginx: platform.yanolaai.com
+│       └── SSL: ✓
 │
-└── Application 2: assurdash
-    ├── Port: 3001
-    ├── PM2 Process: assurdash
-    ├── Nginx: dashboard.yanolaai.com
-    └── SSL: ✓
+└── Utilisateur: aya
+    └── Application: aya
+        ├── Dossier: /home/aya/apps/aya
+        ├── Port: 3001
+        ├── PM2 Process: aya
+        ├── Nginx: dashboard.yanolaai.com
+        └── SSL: ✓
 ```
+
+**Avantages de cette architecture:**
+- ✅ Isolation complète entre les deux projets
+- ✅ Chaque utilisateur gère ses propres processus PM2
+- ✅ Permissions et sécurité séparées
+- ✅ Facilite la maintenance et le débogage
 
 ---
 
 ## Commandes de référence rapide
 
-```bash
-# Se connecter au serveur
-ssh -i /path/to/key.pem yanola-platform@YOUR_IP
+### Pour l'application aya
 
-# Voir toutes les applications
+```bash
+# Se connecter au serveur avec l'utilisateur aya
+ssh -i /path/to/key.pem ubuntu@YOUR_IP
+su - aya
+
+# Voir les applications de cet utilisateur
 pm2 status
 
-# Logs d'assurdash
-pm2 logs assurdash
+# Logs d'aya
+pm2 logs aya
 
-# Mettre à jour assurdash
-cd ~/apps/assurdash && git pull && npm install && npm run build && pm2 restart assurdash
+# Mettre à jour aya
+cd ~/apps/aya && git pull && npm install && npm run build && pm2 restart aya
 
-# Redémarrer toutes les applications
-pm2 restart all
+# Redémarrer l'application
+pm2 restart aya
+```
 
-# Vérifier Nginx
+### Pour l'application yanola_ai_frontend
+
+```bash
+# Se connecter avec l'utilisateur yanola-platform
+ssh -i /path/to/key.pem ubuntu@YOUR_IP
+su - yanola-platform
+
+# Voir les applications de cet utilisateur
+pm2 status
+
+# Gérer yanola_ai_frontend
+pm2 restart yanola_ai_frontend
+pm2 logs yanola_ai_frontend
+```
+
+### Commandes globales (nécessitent sudo)
+
+```bash
+# Vérifier Nginx (depuis n'importe quel utilisateur avec sudo)
 sudo nginx -t
 sudo systemctl status nginx
+sudo systemctl reload nginx
 
-# Renouveler SSL
+# Renouveler SSL (depuis n'importe quel utilisateur avec sudo)
 sudo certbot renew
+
+# Voir tous les processus Node.js sur le serveur
+ps aux | grep node
 ```
 
 ---
@@ -793,20 +998,86 @@ Pour plus d'aide:
 
 ## Conclusion
 
-Votre application AssurDash est maintenant déployée sur Lightsail aux côtés de yanola_ai_frontend!
+Votre application aya est maintenant déployée sur Lightsail avec une architecture multi-utilisateurs sécurisée!
 
-**Prochaines étapes recommandées:**
+### Récapitulatif du déploiement
 
-1. ✅ Tester toutes les fonctionnalités de l'application
-2. ✅ Créer votre compte admin via l'interface
-3. ✅ Exécuter la requête SQL pour promouvoir votre compte en admin
-4. ✅ Configurer les sauvegardes automatiques Supabase
-5. ✅ Mettre en place un monitoring (optionnel)
-6. ✅ Documenter vos processus métier
+✅ **Ce qui a été configuré:**
+- Création d'un utilisateur Linux dédié `aya`
+- Déploiement de l'application sur le port 3001
+- Configuration de Supabase avec tables et politiques RLS
+- Configuration PM2 pour le démarrage automatique
+- Configuration Nginx avec virtual host dédié
+- Installation du certificat SSL avec Let's Encrypt
+- Isolation complète d'avec yanola_ai_frontend
 
-**URLs de votre déploiement:**
-- Application yanola_ai_frontend: `https://platform.yanolaai.com`
-- Application assurdash: `https://dashboard.yanolaai.com`
-- Dashboard Supabase: `https://app.supabase.com`
+### État final de votre serveur
+
+```
+🖥️ Serveur Lightsail (13.39.245.32)
+│
+├─ 👤 Utilisateur: yanola-platform
+│  └─ 🚀 yanola_ai_frontend → https://platform.yanolaai.com (Port 3000)
+│
+└─ 👤 Utilisateur: aya
+   └─ 🚀 aya → https://dashboard.yanolaai.com (Port 3001)
+```
+
+**Avantages de cette architecture:**
+- ✅ Isolation complète entre les deux applications
+- ✅ Sécurité renforcée (permissions séparées)
+- ✅ Gestion indépendante des processus PM2
+- ✅ Facilité de maintenance et de débogage
+
+### Prochaines étapes recommandées
+
+1. ✅ **Tester l'application** - Vérifier toutes les fonctionnalités
+2. ✅ **Créer un compte admin** - S'inscrire et exécuter la requête SQL de promotion
+3. ✅ **Importer des données** - Ajouter vos souscriptions, transactions, codes promo
+4. ✅ **Configurer les sauvegardes** - Automatiser les backups Supabase
+5. ✅ **Mettre en place le monitoring** - Surveiller les performances
+6. ✅ **Documentation métier** - Documenter vos processus
+
+### Commandes quotidiennes
+
+**Gérer aya:**
+```bash
+ssh -i /path/to/key.pem ubuntu@YOUR_IP
+su - aya
+pm2 status
+pm2 logs aya
+```
+
+**Mettre à jour aya:**
+```bash
+su - aya
+cd ~/apps/aya && git pull && npm install && npm run build && pm2 restart aya
+```
+
+**Gérer le serveur (Nginx, SSL):**
+```bash
+sudo systemctl status nginx
+sudo certbot renew
+sudo pm2 list  # Voir toutes les applications
+```
+
+### URLs de votre déploiement
+
+- **Application aya:** `https://dashboard.yanolaai.com`
+- **Application yanola_ai_frontend:** `https://platform.yanolaai.com`
+- **Dashboard Supabase:** `https://app.supabase.com`
+
+### En cas de problème
+
+1. Consultez la section [Troubleshooting](#troubleshooting)
+2. Vérifiez les logs: `pm2 logs aya`
+3. Vérifiez Nginx: `sudo tail -f /var/log/nginx/error.log`
+4. Vérifiez Supabase pour les erreurs de base de données
+
+---
+
+**Félicitations! Votre déploiement multi-applications est terminé!** 🎉
+
+Vous avez maintenant deux applications Next.js fonctionnant de manière isolée et sécurisée sur le même serveur Lightsail, avec SSL activé et gestion par PM2.
 
 Bon déploiement! 🚀

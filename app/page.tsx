@@ -209,8 +209,8 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell>{formatCurrency(souscription.prime_ttc || 0)}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANTS[souscription.status || 'en_attente']}>
-                      {STATUS_LABELS[souscription.status || 'en_attente']}
+                    <Badge variant={STATUS_VARIANTS[(souscription.status || 'en_attente') as SouscriptionStatus]}>
+                      {STATUS_LABELS[(souscription.status || 'en_attente') as SouscriptionStatus]}
                     </Badge>
                   </TableCell>
                   <TableCell>
