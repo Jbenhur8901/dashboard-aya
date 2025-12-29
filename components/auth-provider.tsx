@@ -11,12 +11,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading) {
-      // If not authenticated and not on login page, redirect to login
-      if (!user && pathname !== '/login') {
+      // Public pages that don't require authentication
+      const publicPages = ['/login', '/signin']
+      const isPublicPage = publicPages.includes(pathname)
+
+      // If not authenticated and not on a public page, redirect to login
+      if (!user && !isPublicPage) {
         router.push('/login')
       }
-      // If authenticated and on login page, redirect to home
-      else if (user && pathname === '/login') {
+      // If authenticated and on login or register page, redirect to home
+      else if (user && isPublicPage) {
         router.push('/')
       }
     }

@@ -10,11 +10,13 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 
-export default function LoginPage() {
+export default function SignInPage() {
   const [email, setEmail] = useState('')
+  const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signUp } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
 
@@ -22,17 +24,48 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    try {
-      await signIn(email, password)
-      // Navigation handled by signIn function
+    // Validation
+    if (password.length < 6) {
       toast({
-        title: 'Connexion réussie',
+        title: 'Mot de passe trop court',
+        description: 'Le mot de passe doit contenir au moins 6 caractères',
+        variant: 'destructive',
+      })
+      setIsLoading(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Mots de passe différents',
+        description: 'Les mots de passe ne correspondent pas',
+        variant: 'destructive',
+      })
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      await signUp(email, password, {
+        full_name: fullName,
+      })
+      // Navigation handled by signUp function
+      toast({
+        title: 'Compte créé avec succès',
         description: 'Bienvenue dans AssurDash',
       })
     } catch (error: any) {
+      let errorMessage = 'Impossible de créer le compte'
+
+      if (error.message?.includes('already registered')) {
+        errorMessage = 'Cette adresse email est déjà utilisée'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
       toast({
-        title: 'Erreur de connexion',
-        description: error.message || 'Email ou mot de passe incorrect',
+        title: 'Erreur d\'inscription',
+        description: errorMessage,
         variant: 'destructive',
       })
       setIsLoading(false)
@@ -52,11 +85,23 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-semibold text-center">Bienvenue sur Aya</CardTitle>
           <CardDescription className="text-center">
-            Connectez-vous à votre compte
+            Créez votre compte pour accéder à la plateforme
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nom complet</Label>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -79,16 +124,29 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Connexion...' : 'Se connecter'}
+              {isLoading ? 'Création...' : 'Créer un compte'}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            <span className="text-muted-foreground">Pas encore de compte ? </span>
-            <Link href="/signin" className="text-primary hover:underline font-medium">
-              S&apos;inscrire
+            <span className="text-muted-foreground">Déjà un compte ? </span>
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              Se connecter
             </Link>
           </div>
         </CardContent>

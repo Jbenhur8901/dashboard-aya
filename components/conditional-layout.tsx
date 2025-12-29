@@ -6,9 +6,9 @@ import { Header } from './header'
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isLoginPage = pathname === '/login'
+  const isAuthPage = pathname === '/login' || pathname === '/signin'
 
-  if (isLoginPage) {
+  if (isAuthPage) {
     return <>{children}</>
   }
 

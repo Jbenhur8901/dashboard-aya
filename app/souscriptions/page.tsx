@@ -29,10 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Souscription, ProductType, SouscriptionStatus } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Eye, Search } from 'lucide-react'
+import { Eye, Search, Trash2 } from 'lucide-react'
+import { useTableSelection } from '@/hooks/use-table-selection'
+import { useUpdateStatus } from '@/hooks/use-update-status'
+import { useBulkUpdateStatus } from '@/hooks/use-bulk-update-status'
+import { useDeleteItem } from '@/hooks/use-delete-item'
+import { useBulkDelete } from '@/hooks/use-bulk-delete'
+import { useIsAdmin } from '@/hooks/use-user-profile'
 
 const PRODUCT_COLORS: Record<ProductType, string> = {
   'NSIA AUTO': '#10B981',
@@ -69,6 +77,7 @@ export default function SouscriptionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSouscription, setSelectedSouscription] = useState<Souscription | null>(null)
+  const [dialogStatus, setDialogStatus] = useState<string>('')
 
   const { data: souscriptions, isLoading } = useQuery({
     queryKey: ['souscriptions', productFilter, statusFilter, searchQuery],
@@ -104,6 +113,30 @@ export default function SouscriptionsPage() {
       return filtered
     },
   })
+
+  // Multi-select state and hooks
+  const {
+    selectedIds,
+    isSelected,
+    toggleSelection,
+    toggleAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+    hasSelection,
+  } = useTableSelection({
+    data: souscriptions || [],
+    getItemId: (item) => item.id,
+  })
+
+  // Mutations
+  const updateStatusMutation = useUpdateStatus('souscriptions')
+  const bulkUpdateMutation = useBulkUpdateStatus('souscriptions')
+  const deleteMutation = useDeleteItem('souscriptions')
+  const bulkDeleteMutation = useBulkDelete('souscriptions')
+
+  // Permissions
+  const { isAdmin, isSuperAdmin } = useIsAdmin()
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -171,10 +204,68 @@ export default function SouscriptionsPage() {
 
       {/* Table */}
       <Card>
+        {/* Bulk Actions Toolbar */}
+        {hasSelection && (
+          <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
+            <div className="text-sm text-muted-foreground">
+              {selectedIds.size} élément(s) sélectionné(s)
+            </div>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <Select
+                  onValueChange={(status) => {
+                    bulkUpdateMutation.mutate({ ids: Array.from(selectedIds), status })
+                    clearSelection()
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Changer le statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en_cours">En cours</SelectItem>
+                    <SelectItem value="valide">Validée</SelectItem>
+                    <SelectItem value="expiree">Expirée</SelectItem>
+                    <SelectItem value="annulee">Annulée</SelectItem>
+                    <SelectItem value="en_attente">En attente</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              {isSuperAdmin && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm(`Supprimer ${selectedIds.size} souscription(s) ?`)) {
+                      bulkDeleteMutation.mutate(Array.from(selectedIds))
+                      clearSelection()
+                    }
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </Button>
+              )}
+
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        )}
+
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    indeterminate={someSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="Sélectionner tout"
+                  />
+                </TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Type de Produit</TableHead>
                 <TableHead>Prime TTC</TableHead>
@@ -186,19 +277,25 @@ export default function SouscriptionsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Chargement...
                   </TableCell>
                 </TableRow>
               ) : souscriptions?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Aucune souscription trouvée
                   </TableCell>
                 </TableRow>
               ) : (
                 souscriptions?.map((souscription) => (
                   <TableRow key={souscription.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={isSelected(souscription.id)}
+                        onCheckedChange={() => toggleSelection(souscription.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       {souscription.client
                         ? (souscription.client.username || souscription.client.fullname || 'N/A')
@@ -234,7 +331,10 @@ export default function SouscriptionsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setSelectedSouscription(souscription)}
+                        onClick={() => {
+                          setSelectedSouscription(souscription)
+                          setDialogStatus(souscription.status || '')
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -248,7 +348,15 @@ export default function SouscriptionsPage() {
       </Card>
 
       {/* Detail Dialog */}
-      <Dialog open={!!selectedSouscription} onOpenChange={(open) => !open && setSelectedSouscription(null)}>
+      <Dialog
+        open={!!selectedSouscription}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedSouscription(null)
+            setDialogStatus('')
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Détails de la Souscription</DialogTitle>
@@ -293,6 +401,73 @@ export default function SouscriptionsPage() {
                 </div>
               </div>
 
+              {/* Actions Section */}
+              <div className="border-t pt-4 space-y-4">
+                <div>
+                  <Label htmlFor="status-select">Changer le statut</Label>
+                  <Select
+                    value={dialogStatus}
+                    onValueChange={setDialogStatus}
+                  >
+                    <SelectTrigger id="status-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en_cours">En cours</SelectItem>
+                      <SelectItem value="valide">Validée</SelectItem>
+                      <SelectItem value="expiree">Expirée</SelectItem>
+                      <SelectItem value="annulee">Annulée</SelectItem>
+                      <SelectItem value="en_attente">En attente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex justify-between gap-2">
+                  <div>
+                    {isSuperAdmin && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm('Supprimer cette souscription ?')) {
+                            deleteMutation.mutate(selectedSouscription.id)
+                            setSelectedSouscription(null)
+                          }
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (dialogStatus && dialogStatus !== selectedSouscription.status) {
+                          updateStatusMutation.mutate({
+                            id: selectedSouscription.id,
+                            status: dialogStatus,
+                          })
+                          setSelectedSouscription(null)
+                          setDialogStatus('')
+                        }
+                      }}
+                      disabled={!dialogStatus || dialogStatus === selectedSouscription.status}
+                    >
+                      Enregistrer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedSouscription(null)
+                        setDialogStatus('')
+                      }}
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

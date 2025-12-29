@@ -10,6 +10,7 @@ import {
   CreditCard,
   Tag,
   FolderOpen,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +39,11 @@ const navigation = [
     name: 'Codes Promo',
     href: '/codes-promo',
     icon: Tag,
+  },
+  {
+    name: 'Suivi Codes Promo',
+    href: '/codes-promo/suivi',
+    icon: BarChart3,
   },
   {
     name: 'Documents',

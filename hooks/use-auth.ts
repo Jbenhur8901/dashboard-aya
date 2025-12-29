@@ -48,10 +48,54 @@ export function useAuth() {
     window.location.href = '/login'
   }
 
+  const signUp = async (email: string, password: string, userInfo?: {
+    username?: string
+    full_name?: string
+    last_name?: string
+    fonction?: string
+    departement?: string
+    phone?: string
+  }) => {
+    // Step 1: Create auth user with only email and password
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (error) throw error
+
+    // Step 2: Update public.users table with additional info
+    if (data.user && userInfo) {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          username: userInfo.username,
+          full_name: userInfo.full_name,
+          last_name: userInfo.last_name,
+          fonction: userInfo.fonction,
+          departement: userInfo.departement,
+          phone: userInfo.phone,
+        })
+        .eq('id', data.user.id)
+
+      if (updateError) {
+        console.error('Error updating user info:', updateError)
+        // Don't throw - user is already created, just log the error
+      }
+    }
+
+    // Auto-login after signup
+    if (data.user) {
+      window.location.href = '/'
+    }
+    return data
+  }
+
   return {
     user,
     loading,
     signIn,
     signOut,
+    signUp,
   }
 }

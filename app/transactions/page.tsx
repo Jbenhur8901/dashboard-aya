@@ -21,9 +21,26 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Transaction, TransactionStatus, PaymentMethod } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { Eye, Trash2 } from 'lucide-react'
+import { useTableSelection } from '@/hooks/use-table-selection'
+import { useUpdateStatus } from '@/hooks/use-update-status'
+import { useBulkUpdateStatus } from '@/hooks/use-bulk-update-status'
+import { useDeleteItem } from '@/hooks/use-delete-item'
+import { useBulkDelete } from '@/hooks/use-bulk-delete'
+import { useIsAdmin } from '@/hooks/use-user-profile'
 
 const STATUS_VARIANTS: Record<TransactionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   en_cours: 'default',
@@ -51,6 +68,8 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 export default function TransactionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [methodFilter, setMethodFilter] = useState<string>('all')
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  const [dialogStatus, setDialogStatus] = useState<string>('')
 
   // Query for all transactions (for stats)
   const { data: allTransactions } = useQuery({
@@ -91,6 +110,30 @@ export default function TransactionsPage() {
       return data || []
     },
   })
+
+  // Multi-select state and hooks
+  const {
+    selectedIds,
+    isSelected,
+    toggleSelection,
+    toggleAll,
+    clearSelection,
+    allSelected,
+    someSelected,
+    hasSelection,
+  } = useTableSelection({
+    data: transactions || [],
+    getItemId: (item) => item.id,
+  })
+
+  // Mutations
+  const updateStatusMutation = useUpdateStatus('transactions')
+  const bulkUpdateMutation = useBulkUpdateStatus('transactions')
+  const deleteMutation = useDeleteItem('transactions')
+  const bulkDeleteMutation = useBulkDelete('transactions')
+
+  // Permissions
+  const { isAdmin, isSuperAdmin } = useIsAdmin()
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -198,34 +241,99 @@ export default function TransactionsPage() {
 
       {/* Table */}
       <Card>
+        {/* Bulk Actions Toolbar */}
+        {hasSelection && (
+          <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
+            <div className="text-sm text-muted-foreground">
+              {selectedIds.size} élément(s) sélectionné(s)
+            </div>
+            <div className="flex gap-2">
+              {isAdmin && (
+                <Select
+                  onValueChange={(status) => {
+                    bulkUpdateMutation.mutate({ ids: Array.from(selectedIds), status })
+                    clearSelection()
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Changer le statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en_cours">En cours</SelectItem>
+                    <SelectItem value="valide">Validée</SelectItem>
+                    <SelectItem value="expiree">Expirée</SelectItem>
+                    <SelectItem value="annulee">Annulée</SelectItem>
+                    <SelectItem value="en_attente">En attente</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              {isSuperAdmin && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm(`Supprimer ${selectedIds.size} transaction(s) ?`)) {
+                      bulkDeleteMutation.mutate(Array.from(selectedIds))
+                      clearSelection()
+                    }
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </Button>
+              )}
+
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                Annuler
+              </Button>
+            </div>
+          </div>
+        )}
+
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    indeterminate={someSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="Sélectionner tout"
+                  />
+                </TableHead>
                 <TableHead>Référence</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Montant</TableHead>
                 <TableHead>Méthode de Paiement</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={8} className="text-center">
                     Chargement...
                   </TableCell>
                 </TableRow>
               ) : transactions?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={8} className="text-center">
                     Aucune transaction trouvée
                   </TableCell>
                 </TableRow>
               ) : (
                 transactions?.map((transaction) => (
                   <TableRow key={transaction.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={isSelected(transaction.id)}
+                        onCheckedChange={() => toggleSelection(transaction.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-mono text-sm">
                       {transaction.reference || 'N/A'}
                     </TableCell>
@@ -256,20 +364,170 @@ export default function TransactionsPage() {
                         locale: fr,
                       })}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedTransaction(transaction)
+                          setDialogStatus(transaction.status || '')
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={2}>Total</TableCell>
+                <TableCell colSpan={3}>Total</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totalAmount)}</TableCell>
-                <TableCell colSpan={3}></TableCell>
+                <TableCell colSpan={4}></TableCell>
               </TableRow>
             </TableFooter>
           </Table>
         </CardContent>
       </Card>
+
+      {/* Detail Dialog */}
+      <Dialog
+        open={!!selectedTransaction}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTransaction(null)
+            setDialogStatus('')
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails de la Transaction</DialogTitle>
+            <DialogDescription>
+              Informations détaillées sur la transaction
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Référence</p>
+                  <p className="text-sm font-mono">
+                    {selectedTransaction.reference || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Client</p>
+                  <p className="text-sm">
+                    {selectedTransaction.souscription?.client
+                      ? (selectedTransaction.souscription.client.username || selectedTransaction.souscription.client.fullname || 'N/A')
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Montant</p>
+                  <p className="text-sm font-medium">
+                    {selectedTransaction.amount ? formatCurrency(selectedTransaction.amount) : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Méthode de Paiement</p>
+                  {selectedTransaction.payment_method && (
+                    <Badge variant="outline">
+                      {PAYMENT_METHOD_LABELS[selectedTransaction.payment_method as PaymentMethod]}
+                    </Badge>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Statut</p>
+                  {selectedTransaction.status && (
+                    <Badge variant={STATUS_VARIANTS[selectedTransaction.status as TransactionStatus]}>
+                      {STATUS_LABELS[selectedTransaction.status as TransactionStatus]}
+                    </Badge>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Date</p>
+                  <p className="text-sm">
+                    {format(new Date(selectedTransaction.created_at), 'dd MMM yyyy HH:mm', {
+                      locale: fr,
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions Section */}
+              <div className="border-t pt-4 space-y-4">
+                <div>
+                  <Label htmlFor="status-select">Changer le statut</Label>
+                  <Select
+                    value={dialogStatus}
+                    onValueChange={setDialogStatus}
+                  >
+                    <SelectTrigger id="status-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en_cours">En cours</SelectItem>
+                      <SelectItem value="valide">Validée</SelectItem>
+                      <SelectItem value="expiree">Expirée</SelectItem>
+                      <SelectItem value="annulee">Annulée</SelectItem>
+                      <SelectItem value="en_attente">En attente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex justify-between gap-2">
+                  <div>
+                    {isSuperAdmin && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm('Supprimer cette transaction ?')) {
+                            deleteMutation.mutate(selectedTransaction.id)
+                            setSelectedTransaction(null)
+                          }
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (dialogStatus && dialogStatus !== selectedTransaction.status) {
+                          updateStatusMutation.mutate({
+                            id: selectedTransaction.id,
+                            status: dialogStatus,
+                          })
+                          setSelectedTransaction(null)
+                          setDialogStatus('')
+                        }
+                      }}
+                      disabled={!dialogStatus || dialogStatus === selectedTransaction.status}
+                    >
+                      Enregistrer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedTransaction(null)
+                        setDialogStatus('')
+                      }}
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

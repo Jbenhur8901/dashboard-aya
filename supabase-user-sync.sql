@@ -9,7 +9,6 @@ BEGIN
     id,
     email,
     username,
-    full_name,
     role,
     approved,
     disabled,
@@ -18,10 +17,9 @@ BEGIN
   ) VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'user'),
-    false, -- Par défaut, les utilisateurs ne sont pas approuvés
+    SPLIT_PART(NEW.email, '@', 1), -- Générer un username temporaire depuis l'email
+    'user', -- Rôle par défaut
+    true, -- Par défaut, les utilisateurs sont approuvés (accès immédiat)
     false,
     NOW(),
     NOW()
