@@ -497,10 +497,7 @@ sudo nano /etc/nginx/sites-available/aya
 ```nginx
 server {
     listen 80;
-    server_name dashboard.yanolaai.com www.dashboard.yanolaai.com;
-
-    # Ou utilisez votre sous-domaine choisi:
-    # server_name aya.yanolaai.com www.aya.yanolaai.com;
+    server_name aya.nodes-hub.com www.aya.nodes-hub.com;
 
     location / {
         proxy_pass http://localhost:3001;  # Port 3001 pour aya
@@ -552,10 +549,10 @@ sudo systemctl status nginx
 ### 8.1 Obtenir le certificat SSL
 
 ```bash
-sudo certbot --nginx -d dashboard.yanolaai.com -d www.dashboard.yanolaai.com
+sudo certbot --nginx -d aya.nodes-hub.com 
 ```
 
-**Remplacez** `dashboard.yanolaai.com` par votre sous-domaine.
+**Remplacez** `aya.nodes-hub.com` par votre sous-domaine.
 
 Suivez les instructions:
 1. Entrez votre email
@@ -571,8 +568,8 @@ sudo certbot renew --dry-run
 ### 8.3 Accéder à votre application
 
 Ouvrez votre navigateur:
-- **Avec SSL:** `https://dashboard.yanolaai.com`
-- **Sans SSL (temporaire):** `http://YOUR_IP:3001`
+- **Avec SSL:** `https://aya.nodes-hub.com`
+- **Sans SSL (temporaire):** `http://13.39.245.32:3001`
 
 ---
 
