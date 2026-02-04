@@ -345,7 +345,7 @@ Pour obtenir vos credentials:
 3. Allez dans **Settings** → **API**
 4. Copiez:
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY` 
 
 Sauvegardez et quittez: `Ctrl + X`, puis `Y`, puis `Enter`
 
