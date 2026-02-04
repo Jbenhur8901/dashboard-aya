@@ -300,7 +300,7 @@ cd ~/apps
 ```bash
 # Cloner le repository
 
-git clone https://github.com/Jbenhur8901/dashboard-aya.git aya
+git clone https://github.com/Jbenhur8901/dashboard-aya.git aya ++++
 
 # Entrer dans le répertoire
 cd aya
