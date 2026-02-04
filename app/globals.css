@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 47% 11%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 20% 95%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 216 22% 74%;
+    --radius: 0.85rem;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 19% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217 19% 16%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 217 19% 16%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 63% 35%;
+    --destructive-foreground: 210 40% 96%;
+    --border: 217 19% 16%;
+    --input: 217 19% 16%;
+    --ring: 216 22% 74%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .app-bg {
+    background-image:
+      radial-gradient(1200px 600px at 90% -20%, rgba(15, 23, 42, 0.05), transparent 60%),
+      radial-gradient(800px 400px at 10% -10%, rgba(15, 23, 42, 0.04), transparent 55%);
+  }
+
+  .surface {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm;
+    box-shadow: 0 6px 24px -18px rgba(15, 23, 42, 0.35);
+  }
+
+  .surface-muted {
+    @apply rounded-xl border bg-muted/50 text-foreground;
+  }
+
+  .soft-shadow {
+    box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.35);
+  }
+
+  .title-display {
+    @apply font-display text-2xl font-semibold tracking-tight;
+  }
+
+  .subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 ease-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fade-up 0.5s ease-out both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-up,
+    .animate-fade-in {
+      animation: none;
+    }
+  }
+}
