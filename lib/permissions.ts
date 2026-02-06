@@ -14,6 +14,7 @@ export type Permission =
   | 'view:clients'
   | 'edit:clients'
   | 'view:documents'
+  | 'view:logs'
   | 'manage:users'
   | 'manage:settings'
 
@@ -32,6 +33,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'view:clients',
     'edit:clients',
     'view:documents',
+    'view:logs',
     'manage:users',
     'manage:settings',
   ],
@@ -62,6 +64,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   user: [
     'view:souscriptions',
+    'view:products',
+    'view:clients',
+    'view:documents',
   ],
 }
 
@@ -75,14 +80,37 @@ export function hasPermission(role: UserRole | string | null, permission: Permis
 export function canAccessRoute(role: UserRole | string | null, route: string): boolean {
   if (!role) return false
 
-  // User role can only access /souscriptions
+  // User role can access limited product and client pages
   if (role === 'user') {
-    return route === '/souscriptions' || route.startsWith('/souscriptions/')
+    const allowedRoutes = [
+      '/souscriptions',
+      '/auto',
+      '/voyage',
+      '/mrh',
+      '/iac',
+      '/easy-sante',
+      '/clients',
+      '/documents',
+      '/profile',
+    ]
+    return (
+      allowedRoutes.includes(route) ||
+      route.startsWith('/souscriptions/') ||
+      route.startsWith('/auto/') ||
+      route.startsWith('/voyage/') ||
+      route.startsWith('/mrh/') ||
+      route.startsWith('/iac/') ||
+      route.startsWith('/easy-sante/') ||
+      route.startsWith('/clients/') ||
+      route.startsWith('/documents/') ||
+      route.startsWith('/profile/')
+    )
   }
 
   const routePermissions: Record<string, Permission> = {
     '/admin/users': 'manage:users',
     '/admin/ip-whitelist': 'manage:settings',
+    '/logs': 'view:logs',
   }
 
   const required = routePermissions[route]
@@ -95,7 +123,7 @@ export function getNavigationForRole(role: UserRole | string | null): string[] {
   if (!role) return []
 
   if (role === 'user') {
-    return ['/souscriptions']
+    return ['/souscriptions', '/auto', '/voyage', '/mrh', '/iac', '/easy-sante', '/clients', '/documents']
   }
 
   // Admin, admin_fin, and superadmin get full navigation
@@ -106,11 +134,13 @@ export function getNavigationForRole(role: UserRole | string | null): string[] {
     '/voyage',
     '/mrh',
     '/iac',
+    '/easy-sante',
     '/clients',
     '/transactions',
     '/codes-agents',
     '/codes-agents/suivi',
     '/documents',
+    '/logs',
     '/admin/users',
     '/admin/ip-whitelist',
   ]

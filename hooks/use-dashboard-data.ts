@@ -29,11 +29,28 @@ export function useDashboardStats() {
 
       const revenusMois = souscriptionsMois?.reduce((sum, s) => sum + (s.prime_ttc || 0), 0) || 0
 
+      // Total transactions encaissées (validées)
+      const { data: transactionsValidees } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('status', 'valide')
+
+      const totalEncaisse = transactionsValidees?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
+
       // Transactions en attente
       const { count: transactionsPending } = await supabase
         .from('transactions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'en_attente')
+
+      // Total MTN Mobile Money (transactions validées)
+      const { data: mtnTransactions } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('payment_method', 'MTN_MOBILE_MONEY')
+        .eq('status', 'valide')
+
+      const totalMtn = mtnTransactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
 
       // Nouveaux clients ce mois
       const { count: nouveauxClients } = await supabase
@@ -44,6 +61,8 @@ export function useDashboardStats() {
       return {
         total_souscriptions: totalSouscriptions || 0,
         revenus_mois: revenusMois,
+        total_mtn: totalMtn,
+        total_encaisse: totalEncaisse,
         transactions_pending: transactionsPending || 0,
         nouveaux_clients: nouveauxClients || 0,
       }

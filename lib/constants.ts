@@ -26,16 +26,16 @@ export const PRODUCT_FULL_LABELS: Record<ProductType, string> = {
 export const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   en_cours: 'default',
   valide: 'success',
-  expiree: 'secondary',
-  annulee: 'destructive',
+  expirée: 'secondary',
+  annulée: 'destructive',
   en_attente: 'warning',
 }
 
 export const STATUS_LABELS: Record<SouscriptionStatus, string> = {
   en_cours: 'En cours',
   valide: 'Validée',
-  expiree: 'Expirée',
-  annulee: 'Annulée',
+  expirée: 'Expirée',
+  annulée: 'Annulée',
   en_attente: 'En attente',
 }
 

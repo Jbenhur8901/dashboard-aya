@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { Toaster } from "@/components/ui/toaster";
 import { ConditionalLayout } from "@/components/conditional-layout";
+import { SouscriptionToastListener } from "@/components/souscription-toast-listener";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           <ConditionalLayout>
             {children}
           </ConditionalLayout>
+          <SouscriptionToastListener />
           <Toaster />
         </Providers>
       </body>

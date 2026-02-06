@@ -59,16 +59,16 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
 const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   en_cours: 'default',
   valide: 'success',
-  expiree: 'secondary',
-  annulee: 'destructive',
+  expirée: 'secondary',
+  annulée: 'destructive',
   en_attente: 'warning',
 }
 
 const STATUS_LABELS: Record<SouscriptionStatus, string> = {
   en_cours: 'En cours',
   valide: 'Validée',
-  expiree: 'Expirée',
-  annulee: 'Annulée',
+  expirée: 'Expirée',
+  annulée: 'Annulée',
   en_attente: 'En attente',
 }
 
@@ -136,7 +136,7 @@ export default function SouscriptionsPage() {
   const bulkDeleteMutation = useBulkDelete('souscriptions')
 
   // Permissions
-  const { isAdmin, isAdminFin, isSuperAdmin } = useIsAdmin()
+  const { isAdmin, isAdminFin, isSuperAdmin, isUser } = useIsAdmin()
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -160,33 +160,35 @@ export default function SouscriptionsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="animate-fade-up">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Souscriptions</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSouscriptions}</div>
-            <p className="text-xs text-muted-foreground">
-              Souscriptions dans la vue actuelle
-            </p>
-          </CardContent>
-        </Card>
+      {!isUser && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="animate-fade-up">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Souscriptions</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalSouscriptions}</div>
+              <p className="text-xs text-muted-foreground">
+                Souscriptions dans la vue actuelle
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="animate-fade-up">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Chiffre d&apos;affaire</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">
-              Total des primes TTC
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="animate-fade-up">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Chiffre d&apos;affaire</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">
+                Total des primes TTC
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card className="animate-fade-up">
@@ -226,8 +228,8 @@ export default function SouscriptionsPage() {
                 <SelectItem value="all">Tous les statuts</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="valide">Validée</SelectItem>
-                <SelectItem value="expiree">Expirée</SelectItem>
-                <SelectItem value="annulee">Annulée</SelectItem>
+                <SelectItem value="expirée">Expirée</SelectItem>
+                <SelectItem value="annulée">Annulée</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>
@@ -244,7 +246,7 @@ export default function SouscriptionsPage() {
               {selectedIds.size} élément(s) sélectionné(s)
             </div>
             <div className="flex gap-2">
-              {(isAdmin || isAdminFin) && (
+              {(isAdmin || isAdminFin || isUser) && (
                 <Select
                   onValueChange={(status) => {
                     bulkUpdateMutation.mutate({ ids: Array.from(selectedIds), status })
@@ -257,8 +259,8 @@ export default function SouscriptionsPage() {
                   <SelectContent>
                     <SelectItem value="en_cours">En cours</SelectItem>
                     <SelectItem value="valide">Validée</SelectItem>
-                    <SelectItem value="expiree">Expirée</SelectItem>
-                    <SelectItem value="annulee">Annulée</SelectItem>
+                    <SelectItem value="expirée">Expirée</SelectItem>
+                    <SelectItem value="annulée">Annulée</SelectItem>
                     <SelectItem value="en_attente">En attente</SelectItem>
                   </SelectContent>
                 </Select>
@@ -441,7 +443,7 @@ export default function SouscriptionsPage() {
                   <Select
                     value={dialogStatus}
                     onValueChange={setDialogStatus}
-                    disabled={!(isAdmin || isAdminFin)}
+                    disabled={!(isAdmin || isAdminFin || isUser)}
                   >
                     <SelectTrigger id="status-select">
                       <SelectValue />
@@ -449,8 +451,8 @@ export default function SouscriptionsPage() {
                     <SelectContent>
                       <SelectItem value="en_cours">En cours</SelectItem>
                       <SelectItem value="valide">Validée</SelectItem>
-                      <SelectItem value="expiree">Expirée</SelectItem>
-                      <SelectItem value="annulee">Annulée</SelectItem>
+                      <SelectItem value="expirée">Expirée</SelectItem>
+                      <SelectItem value="annulée">Annulée</SelectItem>
                       <SelectItem value="en_attente">En attente</SelectItem>
                     </SelectContent>
                   </Select>
@@ -487,7 +489,7 @@ export default function SouscriptionsPage() {
                         }
                       }}
                       disabled={
-                        !(isAdmin || isAdminFin) ||
+                        !(isAdmin || isAdminFin || isUser) ||
                         !dialogStatus ||
                         dialogStatus === selectedSouscription.status
                       }

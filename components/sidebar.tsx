@@ -15,6 +15,8 @@ import {
   Plane,
   Home,
   ShieldCheck,
+  HeartPulse,
+  ClipboardList,
   Settings,
   UserCog,
   Zap,
@@ -60,6 +62,12 @@ const allNavigation = [
     permission: 'view:products' as const,
   },
   {
+    name: 'Easy Santé',
+    href: '/easy-sante',
+    icon: HeartPulse,
+    permission: 'view:products' as const,
+  },
+  {
     name: 'Clients',
     href: '/clients',
     icon: Users,
@@ -88,6 +96,12 @@ const allNavigation = [
     href: '/documents',
     icon: FolderOpen,
     permission: 'view:documents' as const,
+  },
+  {
+    name: 'Logs',
+    href: '/logs',
+    icon: ClipboardList,
+    permission: 'view:logs' as const,
   },
   {
     name: 'Utilisateurs',

@@ -15,7 +15,7 @@ import {
   useRevenusParMois,
   useRecentSouscriptions,
 } from '@/hooks/use-dashboard-data'
-import { FileText, TrendingUp, Clock, Users, ArrowUpRight } from 'lucide-react'
+import { FileText, TrendingUp, Clock, Users, ArrowUpRight, CreditCard } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -32,6 +32,7 @@ import {
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductType, SouscriptionStatus } from '@/types/database.types'
+import { useIsAdmin } from '@/hooks/use-user-profile'
 
 const PRODUCT_COLORS: Record<ProductType, string> = {
   'NSIA AUTO': '#0EA5E9',
@@ -50,16 +51,16 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
 const STATUS_STYLES: Record<SouscriptionStatus, string> = {
   en_cours: 'bg-sky-500/10 text-sky-700 border border-sky-500/20',
   valide: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
-  expiree: 'bg-slate-500/10 text-slate-700 border border-slate-500/20',
-  annulee: 'bg-red-500/10 text-red-700 border border-red-500/20',
+  expirée: 'bg-slate-500/10 text-slate-700 border border-slate-500/20',
+  annulée: 'bg-red-500/10 text-red-700 border border-red-500/20',
   en_attente: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
 }
 
 const STATUS_LABELS: Record<SouscriptionStatus, string> = {
   en_cours: 'En cours',
   valide: 'Validée',
-  expiree: 'Expirée',
-  annulee: 'Annulée',
+  expirée: 'Expirée',
+  annulée: 'Annulée',
   en_attente: 'En attente',
 }
 
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const { data: souscriptionsParType } = useSouscriptionsParType()
   const { data: revenusParMois } = useRevenusParMois()
   const { data: recentSouscriptions } = useRecentSouscriptions()
+  const { isUser } = useIsAdmin()
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -99,16 +101,34 @@ export default function DashboardPage() {
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Souscriptions Actives"
-          value={statsLoading ? '...' : stats?.total_souscriptions || 0}
-          icon={FileText}
-        />
-        <StatCard
-          title="Revenus du Mois"
-          value={statsLoading ? '...' : formatCurrency(stats?.revenus_mois || 0)}
-          icon={TrendingUp}
-        />
+        {!isUser && (
+          <StatCard
+            title="Souscriptions Actives"
+            value={statsLoading ? '...' : stats?.total_souscriptions || 0}
+            icon={FileText}
+          />
+        )}
+        {!isUser && (
+          <StatCard
+            title="Revenus du Mois"
+            value={statsLoading ? '...' : formatCurrency(stats?.revenus_mois || 0)}
+            icon={TrendingUp}
+          />
+        )}
+        {!isUser && (
+          <StatCard
+            title="Total MTN Mobile Money"
+            value={statsLoading ? '...' : formatCurrency(stats?.total_mtn || 0)}
+            icon={CreditCard}
+          />
+        )}
+        {!isUser && (
+          <StatCard
+            title="Chiffre d'affaires encaissé"
+            value={statsLoading ? '...' : formatCurrency(stats?.total_encaisse || 0)}
+            icon={TrendingUp}
+          />
+        )}
         <StatCard
           title="Transactions en Attente"
           value={statsLoading ? '...' : stats?.transactions_pending || 0}
@@ -166,56 +186,58 @@ export default function DashboardPage() {
         </div>
 
         {/* Bar Chart */}
-        <div className="surface p-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-semibold">Revenus des 6 Derniers Mois</h3>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Détails <ArrowUpRight className="h-3 w-3" />
-            </button>
+        {!isUser && (
+          <div className="surface p-6 animate-fade-up">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-base font-semibold">Revenus des 6 Derniers Mois</h3>
+              <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Détails <ArrowUpRight className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenusParMois} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" />
+                  <XAxis
+                    dataKey="mois"
+                    style={{ fontSize: '12px' }}
+                    stroke="rgba(15, 23, 42, 0.4)"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    style={{ fontSize: '12px' }}
+                    stroke="rgba(15, 23, 42, 0.4)"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(value as number)}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                      border: '1px solid rgba(15, 23, 42, 0.08)',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)',
+                    }}
+                    itemStyle={{ color: '#111827' }}
+                    labelStyle={{ color: 'rgba(15, 23, 42, 0.55)' }}
+                  />
+                  <Bar
+                    dataKey="revenus"
+                    fill="url(#barGradient)"
+                    radius={[6, 6, 0, 0]}
+                  />
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0F172A" />
+                      <stop offset="100%" stopColor="#475569" />
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenusParMois} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" />
-                <XAxis
-                  dataKey="mois"
-                  style={{ fontSize: '12px' }}
-                  stroke="rgba(15, 23, 42, 0.4)"
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  style={{ fontSize: '12px' }}
-                  stroke="rgba(15, 23, 42, 0.4)"
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  formatter={(value) => formatCurrency(value as number)}
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                    border: '1px solid rgba(15, 23, 42, 0.08)',
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)',
-                  }}
-                  itemStyle={{ color: '#111827' }}
-                  labelStyle={{ color: 'rgba(15, 23, 42, 0.55)' }}
-                />
-                <Bar
-                  dataKey="revenus"
-                  fill="url(#barGradient)"
-                  radius={[6, 6, 0, 0]}
-                />
-                <defs>
-                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0F172A" />
-                    <stop offset="100%" stopColor="#475569" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Recent Subscriptions Table */}

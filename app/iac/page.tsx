@@ -128,8 +128,8 @@ export default function IacPage() {
                 <SelectItem value="all">Tous les statuts</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="valide">Validee</SelectItem>
-                <SelectItem value="expiree">Expiree</SelectItem>
-                <SelectItem value="annulee">Annulee</SelectItem>
+                <SelectItem value="expirée">Expirée</SelectItem>
+                <SelectItem value="annulée">Annulée</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>

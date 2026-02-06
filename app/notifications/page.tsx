@@ -19,40 +19,7 @@ interface NotificationItem {
   tone: NotificationTone
 }
 
-const seedNotifications: NotificationItem[] = [
-  {
-    id: "n1",
-    title: "Souscription validée",
-    description: "Dossier Auto #SA-2481",
-    time: "Il y a 6 min",
-    read: false,
-    tone: "success",
-  },
-  {
-    id: "n2",
-    title: "Paiement en attente",
-    description: "Transaction #TR-1820",
-    time: "Il y a 32 min",
-    read: false,
-    tone: "warning",
-  },
-  {
-    id: "n3",
-    title: "Document ajouté",
-    description: "Police MRH - PDF",
-    time: "Hier",
-    read: true,
-    tone: "info",
-  },
-  {
-    id: "n4",
-    title: "Code agent créé",
-    description: "AGENT-NSIA-008",
-    time: "Avant-hier",
-    read: true,
-    tone: "success",
-  },
-]
+const seedNotifications: NotificationItem[] = []
 
 const toneIcon: Record<NotificationTone, typeof CheckCircle2> = {
   success: CheckCircle2,

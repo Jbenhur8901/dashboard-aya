@@ -11,6 +11,7 @@ ALTER TABLE public.souscription_auto ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_voyage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_mrh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_iac ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.souscription_easysante ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- Helper function to check if current user is admin or superadmin
@@ -126,6 +127,11 @@ CREATE POLICY "Clients: Admin/Fin can view"
   ON public.clients FOR SELECT
   USING (public.is_admin_or_fin());
 
+-- Users can view clients (active users only)
+CREATE POLICY "Clients: Active users can view"
+  ON public.clients FOR SELECT
+  USING (public.is_active_user());
+
 -- Admins can insert/update/delete
 CREATE POLICY "Clients: Admin can insert"
   ON public.clients FOR INSERT
@@ -162,6 +168,11 @@ CREATE POLICY "Souscriptions: Admin can insert"
 CREATE POLICY "Souscriptions: Admin can update"
   ON public.souscriptions FOR UPDATE
   USING (public.is_admin());
+
+-- Users can update souscriptions (active users only)
+CREATE POLICY "Souscriptions: Active users can update"
+  ON public.souscriptions FOR UPDATE
+  USING (public.is_active_user());
 
 CREATE POLICY "Souscriptions: Admin can delete"
   ON public.souscriptions FOR DELETE
@@ -219,6 +230,11 @@ CREATE POLICY "Documents: Admin can view all"
 CREATE POLICY "Documents: Admin/Fin can view"
   ON public.documents FOR SELECT
   USING (public.is_admin_or_fin());
+
+-- Users can view documents (active users only)
+CREATE POLICY "Documents: Active users can view"
+  ON public.documents FOR SELECT
+  USING (public.is_active_user());
 
 CREATE POLICY "Documents: Admin/Fin can update"
   ON public.documents FOR UPDATE
@@ -338,6 +354,19 @@ CREATE POLICY "Souscription IAC: Admin can insert"
 CREATE POLICY "Souscription IAC: Admin can delete"
   ON public.souscription_iac FOR DELETE
   USING (public.is_admin());
+
+-- Souscription Easy Sante
+CREATE POLICY "Souscription Easy Sante: Active users can view"
+  ON public.souscription_easysante FOR SELECT
+  USING (public.is_active_user());
+
+CREATE POLICY "Souscription Easy Sante: Active users can insert"
+  ON public.souscription_easysante FOR INSERT
+  WITH CHECK (public.is_active_user());
+
+CREATE POLICY "Souscription Easy Sante: Active users can update"
+  ON public.souscription_easysante FOR UPDATE
+  USING (public.is_active_user());
 
 -- ============================================================
 -- GRANT PERMISSIONS

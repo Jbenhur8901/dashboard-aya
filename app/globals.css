@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
+
 @layer base {
   :root {
     --background: 36 20% 98%;

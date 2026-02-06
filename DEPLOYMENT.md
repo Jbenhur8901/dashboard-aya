@@ -413,7 +413,7 @@ module.exports = {
     max_memory_restart: '1G',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001  // Port différent de yanola_ai_frontend (3000)
+      PORT: 3000  // Port différent de yanola_ai_frontend (3000)
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -570,7 +570,7 @@ sudo certbot renew --dry-run
 
 Ouvrez votre navigateur:
 - **Avec SSL:** `https://aya.nodes-hub.com`
-- **Sans SSL (temporaire):** `http://52.47.141.165:3001`
+- **Sans SSL (temporaire):** `http://52.47.141.165:3000`
 
 ---
 

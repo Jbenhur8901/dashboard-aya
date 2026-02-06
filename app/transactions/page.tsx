@@ -46,16 +46,16 @@ import { useToast } from '@/hooks/use-toast'
 const STATUS_VARIANTS: Record<TransactionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   en_cours: 'default',
   valide: 'success',
-  expiree: 'secondary',
-  annulee: 'destructive',
+  expirée: 'secondary',
+  annulée: 'destructive',
   en_attente: 'warning',
 }
 
 const STATUS_LABELS: Record<TransactionStatus, string> = {
   en_cours: 'En cours',
   valide: 'Validée',
-  expiree: 'Expirée',
-  annulee: 'Annulée',
+  expirée: 'Expirée',
+  annulée: 'Annulée',
   en_attente: 'En attente',
 }
 
@@ -148,6 +148,7 @@ export default function TransactionsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['all-transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       toast({
         title: 'Paiement valide',
         description: 'La transaction a ete marquee comme payee',
@@ -180,9 +181,16 @@ export default function TransactionsPage() {
     return sum
   }, 0) || 0
 
+  const totalMtn = allTransactions?.reduce((sum, t) => {
+    if (t.payment_method === 'MTN_MOBILE_MONEY' && t.status === 'valide' && t.amount) {
+      return sum + t.amount
+    }
+    return sum
+  }, 0) || 0
+
   const successCount = allTransactions?.filter(t => t.status === 'valide').length || 0
   const pendingCount = allTransactions?.filter(t => t.status === 'en_attente').length || 0
-  const failedCount = allTransactions?.filter(t => t.status === 'annulee').length || 0
+  const failedCount = allTransactions?.filter(t => t.status === 'annulée').length || 0
 
   return (
     <div className="space-y-6">
@@ -192,7 +200,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="animate-fade-up">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Encaissé</CardTitle>
@@ -201,6 +209,18 @@ export default function TransactionsPage() {
             <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
             <p className="text-xs text-muted-foreground">
               {successCount} transaction(s) réussie(s)
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="animate-fade-up">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total MTN Mobile Money</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalMtn)}</div>
+            <p className="text-xs text-muted-foreground">
+              Transactions validées MTN
             </p>
           </CardContent>
         </Card>
@@ -245,8 +265,8 @@ export default function TransactionsPage() {
                 <SelectItem value="all">Tous les statuts</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="valide">Validée</SelectItem>
-                <SelectItem value="expiree">Expirée</SelectItem>
-                <SelectItem value="annulee">Annulée</SelectItem>
+                <SelectItem value="expirée">Expirée</SelectItem>
+                <SelectItem value="annulée">Annulée</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>
@@ -289,8 +309,8 @@ export default function TransactionsPage() {
                   <SelectContent>
                     <SelectItem value="en_cours">En cours</SelectItem>
                     <SelectItem value="valide">Validée</SelectItem>
-                    <SelectItem value="expiree">Expirée</SelectItem>
-                    <SelectItem value="annulee">Annulée</SelectItem>
+                    <SelectItem value="expirée">Expirée</SelectItem>
+                    <SelectItem value="annulée">Annulée</SelectItem>
                     <SelectItem value="en_attente">En attente</SelectItem>
                   </SelectContent>
                 </Select>
@@ -516,8 +536,8 @@ export default function TransactionsPage() {
                     <SelectContent>
                       <SelectItem value="en_cours">En cours</SelectItem>
                       <SelectItem value="valide">Validée</SelectItem>
-                      <SelectItem value="expiree">Expirée</SelectItem>
-                      <SelectItem value="annulee">Annulée</SelectItem>
+                      <SelectItem value="expirée">Expirée</SelectItem>
+                      <SelectItem value="annulée">Annulée</SelectItem>
                       <SelectItem value="en_attente">En attente</SelectItem>
                     </SelectContent>
                   </Select>

@@ -11,6 +11,7 @@ ALTER TABLE public.souscription_auto ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_voyage ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_mrh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.souscription_iac ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.souscription_easysante ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 -- Helper functions
@@ -117,6 +118,7 @@ CREATE POLICY "Users: Admin can update"
 DROP POLICY IF EXISTS "Clients: Admin can view all" ON public.clients;
 DROP POLICY IF EXISTS "Clients: Admin/Fin can view" ON public.clients;
 DROP POLICY IF EXISTS "Clients: Authenticated users can view" ON public.clients;
+DROP POLICY IF EXISTS "Clients: Active users can view" ON public.clients;
 DROP POLICY IF EXISTS "Clients: Admin can insert" ON public.clients;
 DROP POLICY IF EXISTS "Clients: Admin can update" ON public.clients;
 DROP POLICY IF EXISTS "Clients: Admin can delete" ON public.clients;
@@ -128,6 +130,10 @@ CREATE POLICY "Clients: Admin can view all"
 CREATE POLICY "Clients: Admin/Fin can view"
   ON public.clients FOR SELECT
   USING (public.is_admin_or_fin());
+
+CREATE POLICY "Clients: Active users can view"
+  ON public.clients FOR SELECT
+  USING (public.is_active_user());
 
 CREATE POLICY "Clients: Admin can insert"
   ON public.clients FOR INSERT
@@ -150,6 +156,7 @@ DROP POLICY IF EXISTS "Souscriptions: Authenticated users can view" ON public.so
 DROP POLICY IF EXISTS "Souscriptions: Active users can view" ON public.souscriptions;
 DROP POLICY IF EXISTS "Souscriptions: Admin can insert" ON public.souscriptions;
 DROP POLICY IF EXISTS "Souscriptions: Admin can update" ON public.souscriptions;
+DROP POLICY IF EXISTS "Souscriptions: Active users can update status" ON public.souscriptions;
 DROP POLICY IF EXISTS "Souscriptions: Admin can delete" ON public.souscriptions;
 
 CREATE POLICY "Souscriptions: Admin can view all"
@@ -171,6 +178,10 @@ CREATE POLICY "Souscriptions: Admin can insert"
 CREATE POLICY "Souscriptions: Admin can update"
   ON public.souscriptions FOR UPDATE
   USING (public.is_admin());
+
+CREATE POLICY "Souscriptions: Active users can update status"
+  ON public.souscriptions FOR UPDATE
+  USING (public.is_active_user());
 
 CREATE POLICY "Souscriptions: Admin can delete"
   ON public.souscriptions FOR DELETE
@@ -238,6 +249,7 @@ CREATE POLICY "Code Promo: Admin can delete"
 DROP POLICY IF EXISTS "Documents: Admin can view all" ON public.documents;
 DROP POLICY IF EXISTS "Documents: Admin/Fin can view" ON public.documents;
 DROP POLICY IF EXISTS "Documents: Authenticated users can view" ON public.documents;
+DROP POLICY IF EXISTS "Documents: Active users can view" ON public.documents;
 DROP POLICY IF EXISTS "Documents: Admin/Fin can update" ON public.documents;
 DROP POLICY IF EXISTS "Documents: Admin can insert" ON public.documents;
 DROP POLICY IF EXISTS "Documents: Admin can delete" ON public.documents;
@@ -249,6 +261,10 @@ CREATE POLICY "Documents: Admin can view all"
 CREATE POLICY "Documents: Admin/Fin can view"
   ON public.documents FOR SELECT
   USING (public.is_admin_or_fin());
+
+CREATE POLICY "Documents: Active users can view"
+  ON public.documents FOR SELECT
+  USING (public.is_active_user());
 
 CREATE POLICY "Documents: Admin/Fin can update"
   ON public.documents FOR UPDATE
@@ -392,6 +408,28 @@ CREATE POLICY "Souscription IAC: Admin can insert"
 CREATE POLICY "Souscription IAC: Admin can delete"
   ON public.souscription_iac FOR DELETE
   USING (public.is_admin());
+
+-- Souscription Easy Sante
+DROP POLICY IF EXISTS "Souscription Easy Sante: Admin can view all" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Admin/Fin can view" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Active users can view" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Admin/Fin can update" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Admin can insert" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Admin can delete" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Active users can insert" ON public.souscription_easysante;
+DROP POLICY IF EXISTS "Souscription Easy Sante: Active users can update" ON public.souscription_easysante;
+
+CREATE POLICY "Souscription Easy Sante: Active users can view"
+  ON public.souscription_easysante FOR SELECT
+  USING (public.is_active_user());
+
+CREATE POLICY "Souscription Easy Sante: Active users can insert"
+  ON public.souscription_easysante FOR INSERT
+  WITH CHECK (public.is_active_user());
+
+CREATE POLICY "Souscription Easy Sante: Active users can update"
+  ON public.souscription_easysante FOR UPDATE
+  USING (public.is_active_user());
 
 -- ============================================================
 -- GRANTS

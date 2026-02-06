@@ -8,8 +8,8 @@ export type ProductType =
 export type SouscriptionStatus =
   | 'en_cours'
   | 'valide'
-  | 'expiree'
-  | 'annulee'
+  | 'expirée'
+  | 'annulée'
   | 'en_attente'
 
 export type PaymentMethod =
@@ -27,8 +27,8 @@ export type UserRole =
 export type TransactionStatus =
   | 'en_cours'
   | 'valide'
-  | 'expiree'
-  | 'annulee'
+  | 'expirée'
+  | 'annulée'
   | 'en_attente'
 
 export type ReductionType = 'pourcentage' | 'montant_fixe'
@@ -143,6 +143,38 @@ export interface SouscriptionIac {
   updated_at: string | null
 }
 
+export interface SouscriptionEasySante {
+  id: string
+  souscription_id: string | null
+  nom_du_groupement: string | null
+  personne_de_contact: string | null
+  telephone: string | null
+  nature_du_groupement: string | null
+  nombre_de_personnes: number | null
+  composition_du_groupe: string | null
+  petits_risques: string | null
+  grands_risques: string | null
+  limite_geographique: string | null
+  confirmation_de_prise_en_charge: boolean | null
+  confirmation_de_plafond: boolean | null
+  plafonds_familiale: string | null
+  delais_de_carence: string | null
+  delais_de_carence_accident: string | null
+  maladie_exclus: string | null
+  questionnaire_medical: string | null
+  refus_acceptation: string | null
+  prime: number | null
+  accord_avec_le_groupement: boolean | null
+  validation_finale: boolean | null
+  decision: string | null
+  date_de_couverture: string | null
+  date_echance: string | null
+  nom_du_prospect: string | null
+  attestation_information: string | null
+  created_at: string
+  updated_at: string | null
+}
+
 export interface Transaction {
   id: string
   souscription_id: string | null
@@ -187,6 +219,8 @@ export interface Document {
 export interface DashboardStats {
   total_souscriptions: number
   revenus_mois: number
+  total_mtn: number
+  total_encaisse: number
   transactions_pending: number
   nouveaux_clients: number
 }

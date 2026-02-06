@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import {
@@ -13,12 +14,20 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Document } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Eye, FileText } from 'lucide-react'
 
 export default function DocumentsPage() {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewName, setPreviewName] = useState<string | null>(null)
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents'],
     queryFn: async (): Promise<Document[]> => {
@@ -55,8 +64,9 @@ export default function DocumentsPage() {
     document.body.removeChild(link)
   }
 
-  const handlePreview = (url: string) => {
-    window.open(url, '_blank')
+  const handlePreview = (url: string, nom: string | null) => {
+    setPreviewUrl(url)
+    setPreviewName(nom)
   }
 
   return (
@@ -169,7 +179,7 @@ export default function DocumentsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handlePreview(document.document_url)}
+                          onClick={() => handlePreview(document.document_url, document.nom)}
                           title="Prévisualiser"
                         >
                           <Eye className="h-4 w-4" />
@@ -191,6 +201,35 @@ export default function DocumentsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{previewName || 'Document'}</DialogTitle>
+          </DialogHeader>
+          {previewUrl ? (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => handleDownload(previewUrl, previewName)}
+                >
+                  Télécharger
+                </Button>
+              </div>
+              <div className="h-[70vh] w-full overflow-hidden rounded-md border bg-background">
+                <iframe
+                  src={previewUrl}
+                  title={previewName || 'Document'}
+                  className="h-full w-full"
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun document à afficher</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

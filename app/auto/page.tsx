@@ -117,8 +117,8 @@ export default function AutoPage() {
                 <SelectItem value="all">Tous les statuts</SelectItem>
                 <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="valide">Validée</SelectItem>
-                <SelectItem value="expiree">Expirée</SelectItem>
-                <SelectItem value="annulee">Annulée</SelectItem>
+                <SelectItem value="expirée">Expirée</SelectItem>
+                <SelectItem value="annulée">Annulée</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>

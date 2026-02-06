@@ -17,15 +17,22 @@ export function useBulkUpdateStatus(table: TableName) {
 
   return useMutation({
     mutationFn: async ({ ids, status }: BulkUpdateStatusParams) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from(table)
         .update({ status, updated_at: new Date().toISOString() })
         .in('id', ids)
+        .select('id')
 
       if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('Aucune ligne mise à jour. Vérifiez les permissions (RLS).')
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [table] })
+      if (table === 'transactions') {
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      }
       log({
         action:
           table === 'souscriptions'
