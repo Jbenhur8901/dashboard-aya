@@ -29,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -94,10 +94,12 @@ const initialForm: EasySanteForm = {
 export default function EasySantePage() {
   const [form, setForm] = useState<EasySanteForm>(initialForm)
   const [saving, setSaving] = useState(false)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [primeValue, setPrimeValue] = useState<string>('')
   const [search, setSearch] = useState('')
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const toChoice = (value: boolean | null) => {
     if (value === true) return 'oui'
@@ -136,6 +138,11 @@ export default function EasySantePage() {
   }
 
   const handlePrint = () => {}
+  const toYesNoLabel = (value: BooleanChoice) => {
+    if (value === 'oui') return 'Oui'
+    if (value === 'non') return 'Non'
+    return ''
+  }
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ['souscription-easysante', search],
@@ -205,6 +212,125 @@ export default function EasySantePage() {
     }
   }
 
+  const handleGeneratePdf = async () => {
+    if (!selectedRow) return
+    setGeneratingPdf(true)
+    try {
+      const formPayload = {
+        nomDuGroupement: form.nom_du_groupement,
+        personneDeContact: form.personne_de_contact,
+        telephone: form.telephone,
+        natureDuGroupement: form.nature_du_groupement,
+        nombreDePersonnes: form.nombre_de_personnes,
+        compositionDuGroupe: form.composition_du_groupe,
+        petitsRisques: form.petits_risques,
+        grandsRisques: form.grands_risques,
+        Limitegeographique: form.limite_geographique,
+        confirmationDePriseEnCharge: toYesNoLabel(form.confirmation_de_prise_en_charge),
+        confirmationDePlafond: toYesNoLabel(form.confirmation_de_plafond),
+        plafondsFamiliale: form.plafonds_familiale,
+        delaisDeCarence: form.delais_de_carence,
+        delaisDeCarence_Accident: form.delais_de_carence_accident,
+        maladieExclus: form.maladie_exclus,
+        questionnaireMedical: form.questionnaire_medical,
+        refusAcceptation: form.refus_acceptation,
+        prime: primeValue || form.prime,
+        accordaveclegroupement: toYesNoLabel(form.accord_avec_le_groupement),
+        validationFinale: toYesNoLabel(form.validation_finale),
+        decision: form.decision,
+        dateDeCouverture: form.date_de_couverture,
+        dateEchance: form.date_echance,
+        nomduProspect: form.nom_du_prospect,
+        attestationInformation: form.attestation_information,
+      }
+
+      const formData = new FormData()
+      formData.append('form_data', JSON.stringify(formPayload))
+
+      const response = await fetch('https://api.yanolaai.com/generate_easy_sante_form/', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la génération du PDF')
+      }
+
+      const payload = (await response.json()) as {
+        pdf_url?: string
+        reference_number?: string
+      }
+
+      if (!payload.pdf_url) {
+        throw new Error('PDF indisponible')
+      }
+
+      if (payload.reference_number) {
+        const { error: updateReferenceError } = await supabase
+          .from('souscription_easysante')
+          .update({
+            reference: payload.reference_number,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', selectedRow.id)
+
+        if (updateReferenceError) throw updateReferenceError
+      }
+
+      const documentPayload = {
+        souscription_id: selectedRow.souscription?.id || null,
+        document_url: payload.pdf_url,
+        pdf_url: payload.pdf_url,
+        type: 'pdf',
+        nom: payload.reference_number || `Easy Santé ${selectedRow.id}`,
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: existingDocument, error: existingDocumentError } = await supabase
+        .from('documents')
+        .select('id')
+        .eq('document_url', payload.pdf_url)
+        .maybeSingle()
+
+      if (existingDocumentError) throw existingDocumentError
+
+      if (existingDocument?.id) {
+        const { error: updateDocumentError } = await supabase
+          .from('documents')
+          .update(documentPayload)
+          .eq('id', existingDocument.id)
+
+        if (updateDocumentError) throw updateDocumentError
+      } else {
+        const { error: insertDocumentError } = await supabase
+          .from('documents')
+          .insert({
+            ...documentPayload,
+            created_at: new Date().toISOString(),
+          })
+
+        if (insertDocumentError) throw insertDocumentError
+      }
+
+      const link = document.createElement('a')
+      link.href = payload.pdf_url
+      link.download = `${payload.reference_number || `easy-sante-${selectedRow.id}`}.pdf`
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
+      link.click()
+
+      queryClient.invalidateQueries({ queryKey: ['souscription-easysante'] })
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de générer le PDF',
+        variant: 'destructive',
+      })
+    } finally {
+      setGeneratingPdf(false)
+    }
+  }
+
   return (
     <div className="space-y-6 print:space-y-4">
       <div className="flex items-center justify-between print:hidden">
@@ -236,6 +362,7 @@ export default function EasySantePage() {
                 <TableHead>Contact</TableHead>
                 <TableHead>Téléphone</TableHead>
                 <TableHead>Prospect</TableHead>
+                <TableHead>Référence</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
@@ -243,13 +370,13 @@ export default function EasySantePage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Chargement...
                   </TableCell>
                 </TableRow>
               ) : rows?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
+                  <TableCell colSpan={7} className="text-center">
                     Aucun dossier Easy Santé
                   </TableCell>
                 </TableRow>
@@ -260,6 +387,7 @@ export default function EasySantePage() {
                     <TableCell>{row.personne_de_contact || 'N/A'}</TableCell>
                     <TableCell>{row.telephone || 'N/A'}</TableCell>
                     <TableCell>{row.nom_du_prospect || 'N/A'}</TableCell>
+                    <TableCell>{row.reference || 'N/A'}</TableCell>
                     <TableCell>
                       {row.created_at
                         ? format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr })
@@ -430,6 +558,9 @@ export default function EasySantePage() {
               </div>
 
               <div className="flex justify-end gap-2 print:hidden">
+                <Button variant="outline" onClick={handleGeneratePdf} disabled={generatingPdf}>
+                  {generatingPdf ? 'Génération...' : 'Générer le PDF'}
+                </Button>
                 <Button onClick={handleSavePrime} disabled={saving}>
                   {saving ? 'Enregistrement...' : 'Enregistrer la prime'}
                 </Button>
