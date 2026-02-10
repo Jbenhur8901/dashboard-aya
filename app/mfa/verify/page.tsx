@@ -15,6 +15,7 @@ export default function MfaVerifyPage() {
   const [factorId, setFactorId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [failedAttempts, setFailedAttempts] = useState(0)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -97,6 +98,15 @@ export default function MfaVerifyPage() {
 
       router.push('/')
     } catch (error: any) {
+      setFailedAttempts((prev) => {
+        const next = prev + 1
+        if (next >= 3) {
+          supabase.auth.signOut().finally(() => {
+            window.location.href = '/login'
+          })
+        }
+        return next
+      })
       toast({
         title: 'Erreur de verification',
         description: error.message || 'Code incorrect. Veuillez reessayer.',
@@ -174,6 +184,20 @@ export default function MfaVerifyPage() {
               </p>
             </div>
           )}
+          <div className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                supabase.auth.signOut().finally(() => {
+                  window.location.href = '/login'
+                })
+              }}
+            >
+              Se déconnecter
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

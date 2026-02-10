@@ -11,14 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +27,9 @@ import { fr } from 'date-fns/locale'
 import { Download, Plane, Search } from 'lucide-react'
 
 export default function VoyagePage() {
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   type VoyageRow = SouscriptionVoyage & {
@@ -51,8 +46,20 @@ export default function VoyagePage() {
     adresse?: string | null
   }
 
+  const toStartOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }
+
+  const toEndOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d.toISOString()
+  }
+
   const { data: voyages, isLoading } = useQuery({
-    queryKey: ['souscriptions-voyage', searchQuery],
+    queryKey: ['souscriptions-voyage', searchQuery, dateFrom, dateTo],
     queryFn: async (): Promise<VoyageRow[]> => {
       let query = supabase
         .from('souscription_voyage')
@@ -61,6 +68,13 @@ export default function VoyagePage() {
           documenturl:"documentUrl"
         `)
         .order('created_at', { ascending: false })
+
+      if (dateFrom) {
+        query = query.gte('created_at', toStartOfDayIso(dateFrom))
+      }
+      if (dateTo) {
+        query = query.lte('created_at', toEndOfDayIso(dateTo))
+      }
 
       const { data } = await query
 
@@ -111,7 +125,7 @@ export default function VoyagePage() {
           <CardTitle>Filtres</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-5 items-end">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -122,19 +136,38 @@ export default function VoyagePage() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="valide">Validee</SelectItem>
-                <SelectItem value="expirée">Expirée</SelectItem>
-                <SelectItem value="annulée">Annulée</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFromVoyage">Du</Label>
+              <Input
+                id="dateFromVoyage"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dateToVoyage">Au</Label>
+              <Input
+                id="dateToVoyage"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -145,34 +178,34 @@ export default function VoyagePage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>created_at</TableHead>
-                <TableHead>updated_at</TableHead>
-                <TableHead>full_name</TableHead>
-                <TableHead>passport_number</TableHead>
-                <TableHead>nationality</TableHead>
-                <TableHead>date_of_birth</TableHead>
-                <TableHead>place_of_birth</TableHead>
-                <TableHead>sex</TableHead>
-                <TableHead>profession</TableHead>
-                <TableHead>issue_date</TableHead>
-                <TableHead>expiry_date</TableHead>
-                <TableHead>place_of_issue</TableHead>
-                <TableHead>country_code</TableHead>
-                <TableHead>type</TableHead>
-                <TableHead>prime_ttc</TableHead>
-                <TableHead>coverage</TableHead>
-                <TableHead>documentUrl</TableHead>
-                <TableHead>code_agent</TableHead>
-                <TableHead>age</TableHead>
-                <TableHead>profil</TableHead>
-                <TableHead>region_de_voyage</TableHead>
-                <TableHead>duree_du_voyage</TableHead>
-                <TableHead>formule</TableHead>
-                <TableHead>moyen_de_payement</TableHead>
-                <TableHead>numero_de_telephone</TableHead>
-                <TableHead>date_de_validite</TableHead>
-                <TableHead>ville</TableHead>
-                <TableHead>adresse</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead>Mis à jour</TableHead>
+                <TableHead>Nom complet</TableHead>
+                <TableHead>N° passeport</TableHead>
+                <TableHead>Nationalité</TableHead>
+                <TableHead>Date de naissance</TableHead>
+                <TableHead>Lieu de naissance</TableHead>
+                <TableHead>Sexe</TableHead>
+                <TableHead>Profession</TableHead>
+                <TableHead>Date d&apos;émission</TableHead>
+                <TableHead>Date d&apos;expiration</TableHead>
+                <TableHead>Lieu d&apos;émission</TableHead>
+                <TableHead>Code pays</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Prime</TableHead>
+                <TableHead>Couverture</TableHead>
+                <TableHead>Document</TableHead>
+                <TableHead>Code agent</TableHead>
+                <TableHead>Age</TableHead>
+                <TableHead>Profil</TableHead>
+                <TableHead>Région de voyage</TableHead>
+                <TableHead>Durée du voyage</TableHead>
+                <TableHead>Formule</TableHead>
+                <TableHead>Moyen de paiement</TableHead>
+                <TableHead>Téléphone</TableHead>
+                <TableHead>Date de validité</TableHead>
+                <TableHead>Ville</TableHead>
+                <TableHead>Adresse</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

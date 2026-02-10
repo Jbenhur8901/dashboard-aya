@@ -12,13 +12,13 @@ Ce guide explique comment configurer le système de permissions pour que les adm
 ### Étape 1: Créer la synchronisation des utilisateurs
 
 1. Allez dans l'**éditeur SQL** de Supabase
-2. Exécutez le contenu du fichier `supabase-user-sync.sql`
+2. Exécutez la migration `supabase/migrations/008_user_sync.sql`
 3. Cela créera automatiquement un profil dans `public.users` quand un utilisateur s'inscrit
 
 ### Étape 2: Activer les politiques RLS
 
 1. Dans l'**éditeur SQL** de Supabase
-2. Exécutez le contenu du fichier `supabase-rls-policies.sql`
+2. Exécutez la migration `supabase/migrations/011_rls_policies_le_dash.sql`
 3. Cela activera Row Level Security sur toutes les tables
 
 ### Étape 3: Créer un utilisateur administrateur

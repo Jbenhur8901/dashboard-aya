@@ -98,8 +98,22 @@ export default function EasySantePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [primeValue, setPrimeValue] = useState<string>('')
   const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  const toStartOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }
+
+  const toEndOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d.toISOString()
+  }
 
   const toChoice = (value: boolean | null) => {
     if (value === true) return 'oui'
@@ -145,9 +159,9 @@ export default function EasySantePage() {
   }
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ['souscription-easysante', search],
+    queryKey: ['souscription-easysante', search, dateFrom, dateTo],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('souscription_easysante')
         .select(`
           *,
@@ -157,6 +171,15 @@ export default function EasySantePage() {
           )
         `)
         .order('created_at', { ascending: false })
+
+      if (dateFrom) {
+        query = query.gte('created_at', toStartOfDayIso(dateFrom))
+      }
+      if (dateTo) {
+        query = query.lte('created_at', toEndOfDayIso(dateTo))
+      }
+
+      const { data } = await query
 
       const allRows = data || []
       const q = search.trim().toLowerCase()
@@ -345,11 +368,44 @@ export default function EasySantePage() {
           <CardTitle>Recherche</CardTitle>
         </CardHeader>
         <CardContent>
-          <Input
-            placeholder="Rechercher par groupement, contact, téléphone, prospect ou client..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="grid gap-4 md:grid-cols-5 items-end">
+            <Input
+              placeholder="Rechercher par groupement, contact, téléphone, prospect ou client..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFromEasySante">Du</Label>
+              <Input
+                id="dateFromEasySante"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateToEasySante">Au</Label>
+              <Input
+                id="dateToEasySante"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -415,6 +471,12 @@ export default function EasySantePage() {
           <DialogHeader>
             <DialogTitle>Fiche Easy Santé</DialogTitle>
           </DialogHeader>
+
+          <div className="flex justify-end gap-2 print:hidden">
+            <Button variant="outline" onClick={handleGeneratePdf} disabled={generatingPdf}>
+              {generatingPdf ? 'Génération...' : 'Générer le PDF'}
+            </Button>
+          </div>
 
           <div className="space-y-4">
             <div className="rounded-lg border p-4 bg-muted/20">
@@ -558,9 +620,6 @@ export default function EasySantePage() {
               </div>
 
               <div className="flex justify-end gap-2 print:hidden">
-                <Button variant="outline" onClick={handleGeneratePdf} disabled={generatingPdf}>
-                  {generatingPdf ? 'Génération...' : 'Générer le PDF'}
-                </Button>
                 <Button onClick={handleSavePrime} disabled={saving}>
                   {saving ? 'Enregistrement...' : 'Enregistrer la prime'}
                 </Button>

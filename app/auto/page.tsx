@@ -11,14 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,12 +28,25 @@ import { fr } from 'date-fns/locale'
 import { Search, Car, Download } from 'lucide-react'
 
 export default function AutoPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
+  const toStartOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }
+
+  const toEndOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d.toISOString()
+  }
+
   const { data: autos, isLoading } = useQuery({
-    queryKey: ['souscriptions-auto', searchQuery],
+    queryKey: ['souscriptions-auto', searchQuery, dateFrom, dateTo],
     queryFn: async (): Promise<SouscriptionAuto[]> => {
       let query = supabase
         .from('souscription_auto')
@@ -48,6 +55,13 @@ export default function AutoPage() {
           documenturl:"documentUrl"
         `)
         .order('created_at', { ascending: false })
+
+      if (dateFrom) {
+        query = query.gte('created_at', toStartOfDayIso(dateFrom))
+      }
+      if (dateTo) {
+        query = query.lte('created_at', toEndOfDayIso(dateTo))
+      }
 
       const { data } = await query
 
@@ -98,7 +112,7 @@ export default function AutoPage() {
           <CardTitle>Filtres</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-5 items-end">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -109,19 +123,38 @@ export default function AutoPage() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="valide">Validée</SelectItem>
-                <SelectItem value="expirée">Expirée</SelectItem>
-                <SelectItem value="annulée">Annulée</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFromAuto">Du</Label>
+              <Input
+                id="dateFromAuto"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dateToAuto">Au</Label>
+              <Input
+                id="dateToAuto"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -132,22 +165,22 @@ export default function AutoPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>created_at</TableHead>
-                <TableHead>fullname</TableHead>
-                <TableHead>immatriculation</TableHead>
-                <TableHead>power</TableHead>
-                <TableHead>seat_number</TableHead>
-                <TableHead>fuel_type</TableHead>
-                <TableHead>brand</TableHead>
-                <TableHead>chassis_number</TableHead>
-                <TableHead>phone</TableHead>
-                <TableHead>model</TableHead>
-                <TableHead>address</TableHead>
-                <TableHead>profession</TableHead>
-                <TableHead>prime_ttc</TableHead>
-                <TableHead>coverage</TableHead>
-                <TableHead>documentUrl</TableHead>
-                <TableHead>updated_at</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead>Nom complet</TableHead>
+                <TableHead>Immatriculation</TableHead>
+                <TableHead>Puissance</TableHead>
+                <TableHead>Places</TableHead>
+                <TableHead>Carburant</TableHead>
+                <TableHead>Marque</TableHead>
+                <TableHead>N° châssis</TableHead>
+                <TableHead>Téléphone</TableHead>
+                <TableHead>Modèle</TableHead>
+                <TableHead>Adresse</TableHead>
+                <TableHead>Profession</TableHead>
+                <TableHead>Prime</TableHead>
+                <TableHead>Couverture</TableHead>
+                <TableHead>Document</TableHead>
+                <TableHead>Mis à jour</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -204,6 +204,8 @@ Ouvrez [http://localhost:3000](http://localhost:3000) dans votre navigateur.
 │   └── utils.ts            # Fonctions utilitaires
 ├── types/                   # Types TypeScript
 │   └── database.types.ts   # Types de la base de données
+├── supabase/                # SQL & Supabase
+│   └── migrations/          # Migrations SQL
 └── public/                  # Fichiers statiques
 ```
 

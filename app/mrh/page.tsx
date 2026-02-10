@@ -11,14 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +27,9 @@ import { fr } from 'date-fns/locale'
 import { Download, Search } from 'lucide-react'
 
 export default function MrhPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   type MrhRow = SouscriptionMrh & {
@@ -46,8 +41,20 @@ export default function MrhPage() {
     ville?: string | null
   }
 
+  const toStartOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }
+
+  const toEndOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d.toISOString()
+  }
+
   const { data: mrhs, isLoading } = useQuery({
-    queryKey: ['souscriptions-mrh', searchQuery],
+    queryKey: ['souscriptions-mrh', searchQuery, dateFrom, dateTo],
     queryFn: async (): Promise<MrhRow[]> => {
       let query = supabase
         .from('souscription_mrh')
@@ -58,6 +65,13 @@ export default function MrhPage() {
           typedocument:"typeDocument"
         `)
         .order('created_at', { ascending: false })
+
+      if (dateFrom) {
+        query = query.gte('created_at', toStartOfDayIso(dateFrom))
+      }
+      if (dateTo) {
+        query = query.lte('created_at', toEndOfDayIso(dateTo))
+      }
 
       const { data } = await query
 
@@ -97,7 +111,7 @@ export default function MrhPage() {
           <CardTitle>Filtres</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-5 items-end">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -108,19 +122,38 @@ export default function MrhPage() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="valide">Validee</SelectItem>
-                <SelectItem value="expirée">Expirée</SelectItem>
-                <SelectItem value="annulée">Annulée</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFromMrh">Du</Label>
+              <Input
+                id="dateFromMrh"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dateToMrh">Au</Label>
+              <Input
+                id="dateToMrh"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -131,19 +164,19 @@ export default function MrhPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>created_at</TableHead>
-                <TableHead>updated_at</TableHead>
-                <TableHead>forfaitMrh</TableHead>
-                <TableHead>typeDocument</TableHead>
-                <TableHead>documentUrl</TableHead>
-                <TableHead>fullname</TableHead>
-                <TableHead>coverage</TableHead>
-                <TableHead>date_de_validite</TableHead>
-                <TableHead>code_agent</TableHead>
-                <TableHead>moyen_de_payement</TableHead>
-                <TableHead>adresse</TableHead>
-                <TableHead>contact</TableHead>
-                <TableHead>ville</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead>Mis à jour</TableHead>
+                <TableHead>Forfait MRH</TableHead>
+                <TableHead>Type document</TableHead>
+                <TableHead>Document</TableHead>
+                <TableHead>Nom complet</TableHead>
+                <TableHead>Couverture</TableHead>
+                <TableHead>Date de validité</TableHead>
+                <TableHead>Code agent</TableHead>
+                <TableHead>Moyen de paiement</TableHead>
+                <TableHead>Adresse</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Ville</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

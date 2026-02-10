@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
-import { Zap } from 'lucide-react'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -74,8 +74,8 @@ export default function SignInPage() {
       <Card className="w-full max-w-md surface">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Zap className="h-6 w-6" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground overflow-hidden">
+              <Image src="/icon.svg" alt="LE DASH" width={56} height={56} />
             </div>
           </div>
           <CardTitle className="text-2xl font-semibold text-center font-display">
@@ -145,6 +145,9 @@ export default function SignInPage() {
             <Link href="/login" className="font-medium text-foreground hover:underline">
               Se connecter
             </Link>
+          </div>
+          <div className="mt-4 text-center text-xs text-muted-foreground">
+            Powered by Nodes Technology
           </div>
         </CardContent>
       </Card>

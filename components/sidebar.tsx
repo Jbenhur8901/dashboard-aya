@@ -177,7 +177,10 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t">
-        <p className="text-[10px] text-muted-foreground text-center tracking-wide">v2.0.0</p>
+        <div className="space-y-1 text-center">
+          <p className="text-[10px] text-muted-foreground tracking-wide">v2.0.0</p>
+          <p className="text-[10px] text-muted-foreground">Powered by Nodes Technology</p>
+        </div>
       </div>
     </div>
   )

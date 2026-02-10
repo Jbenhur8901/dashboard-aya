@@ -11,14 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +27,9 @@ import { fr } from 'date-fns/locale'
 import { Download, Search } from 'lucide-react'
 
 export default function IacPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   type IacRow = SouscriptionIac & {
@@ -46,8 +41,20 @@ export default function IacPage() {
     effectiftotal?: number | null
   }
 
+  const toStartOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(0, 0, 0, 0)
+    return d.toISOString()
+  }
+
+  const toEndOfDayIso = (value: string) => {
+    const d = new Date(value)
+    d.setHours(23, 59, 59, 999)
+    return d.toISOString()
+  }
+
   const { data: iacs, isLoading } = useQuery({
-    queryKey: ['souscriptions-iac', searchQuery],
+    queryKey: ['souscriptions-iac', searchQuery, dateFrom, dateTo],
     queryFn: async (): Promise<IacRow[]> => {
       let query = supabase
         .from('souscription_iac')
@@ -62,6 +69,13 @@ export default function IacPage() {
           effectiftotal:"EffectifTotal"
         `)
         .order('created_at', { ascending: false })
+
+      if (dateFrom) {
+        query = query.gte('created_at', toStartOfDayIso(dateFrom))
+      }
+      if (dateTo) {
+        query = query.lte('created_at', toEndOfDayIso(dateTo))
+      }
 
       const { data } = await query
 
@@ -109,7 +123,7 @@ export default function IacPage() {
           <CardTitle>Filtres</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-5 items-end">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -120,19 +134,38 @@ export default function IacPage() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="valide">Validee</SelectItem>
-                <SelectItem value="expirée">Expirée</SelectItem>
-                <SelectItem value="annulée">Annulée</SelectItem>
-                <SelectItem value="en_attente">En attente</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateFromIac">Du</Label>
+              <Input
+                id="dateFromIac"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="dateToIac">Au</Label>
+              <Input
+                id="dateToIac"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex md:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('')
+                  setDateFrom('')
+                  setDateTo('')
+                }}
+              >
+                Réinitialiser
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -143,22 +176,22 @@ export default function IacPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>created_at</TableHead>
-                <TableHead>updated_at</TableHead>
-                <TableHead>prime_ttc</TableHead>
-                <TableHead>typeDocument</TableHead>
-                <TableHead>documentUrl</TableHead>
-                <TableHead>fullname</TableHead>
-                <TableHead>coverage</TableHead>
-                <TableHead>statutPro</TableHead>
-                <TableHead>secteurActivite</TableHead>
-                <TableHead>lieuTravail</TableHead>
-                <TableHead>code_agent</TableHead>
-                <TableHead>moyen_de_payement</TableHead>
-                <TableHead>ville</TableHead>
-                <TableHead>adresse</TableHead>
-                <TableHead>dateDeValidite</TableHead>
-                <TableHead>EffectifTotal</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead>Mis à jour</TableHead>
+                <TableHead>Prime</TableHead>
+                <TableHead>Type document</TableHead>
+                <TableHead>Document</TableHead>
+                <TableHead>Nom complet</TableHead>
+                <TableHead>Couverture</TableHead>
+                <TableHead>Statut pro</TableHead>
+                <TableHead>Secteur d&apos;activité</TableHead>
+                <TableHead>Lieu de travail</TableHead>
+                <TableHead>Code agent</TableHead>
+                <TableHead>Moyen de paiement</TableHead>
+                <TableHead>Ville</TableHead>
+                <TableHead>Adresse</TableHead>
+                <TableHead>Date de validité</TableHead>
+                <TableHead>Effectif total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

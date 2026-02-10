@@ -56,7 +56,7 @@ Vous aurez besoin de:
 1. Dans le Supabase Dashboard, allez dans **SQL Editor**
 
 2. **Créer la structure des utilisateurs:**
-   - Ouvrez le fichier `supabase-user-sync.sql` de votre projet
+   - Exécutez la migration `supabase/migrations/008_user_sync.sql`
    - Copiez et exécutez le script complet
    - Ce script créera:
      - La table `public.users`
@@ -64,7 +64,7 @@ Vous aurez besoin de:
      - La fonction `handle_new_user()`
 
 3. **Créer la fonction de tracking des codes promo:**
-   - Ouvrez le fichier `supabase-promo-tracking.sql`
+   - Exécutez la migration `supabase/migrations/010_promo_tracking.sql`
    - Copiez et exécutez le script
    - Cette fonction `get_promo_code_tracking()` sera utilisée pour les statistiques
 

@@ -187,7 +187,7 @@ export default function ClientsPage() {
 
       {/* Client History Dialog */}
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Historique - {selectedClient?.fullname}
