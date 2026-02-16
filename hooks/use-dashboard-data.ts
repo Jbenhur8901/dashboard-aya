@@ -15,17 +15,19 @@ export function useDashboardStats() {
     queryFn: async (): Promise<DashboardStats> => {
       const startOfCurrentMonth = startOfMonth(new Date()).toISOString()
 
-      // Total souscriptions actives
+      // Total souscriptions actives (validées)
       const { count: totalSouscriptions } = await supabase
         .from('souscriptions')
         .select('*', { count: 'exact', head: true })
-        .in('status', ['en_cours', 'valide'])
+        .eq('status', 'valide')
 
       // Revenus du mois
       const { data: souscriptionsMois } = await supabase
         .from('souscriptions')
         .select('prime_ttc')
         .gte('created_at', startOfCurrentMonth)
+        .lte('created_at', new Date().toISOString())
+        .eq('status', 'valide')
 
       const revenusMois = souscriptionsMois?.reduce((sum, s) => sum + (s.prime_ttc || 0), 0) || 0
 
@@ -43,14 +45,14 @@ export function useDashboardStats() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'en_attente')
 
-      // Total MTN Mobile Money (transactions validées)
-      const { data: mtnTransactions } = await supabase
+      // Total Mobile Money (transactions validées)
+      const { data: mobileMoneyTransactions } = await supabase
         .from('transactions')
         .select('amount')
-        .eq('payment_method', 'MTN_MOBILE_MONEY')
+        .in('payment_method', ['MTN_MOBILE_MONEY', 'AIRTEL_MOBILE_MONEY'])
         .eq('status', 'valide')
 
-      const totalMtn = mtnTransactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
+      const totalMtn = mobileMoneyTransactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0
 
       // Nouveaux clients ce mois
       const { count: nouveauxClients } = await supabase
@@ -77,6 +79,7 @@ export function useSouscriptionsParType() {
       const { data } = await supabase
         .from('souscriptions')
         .select('producttype')
+        .eq('status', 'valide')
 
       const counts = data?.reduce((acc, s) => {
         acc[s.producttype] = (acc[s.producttype] || 0) + 1
@@ -101,6 +104,7 @@ export function useRevenusParMois() {
         .from('souscriptions')
         .select('prime_ttc, created_at')
         .gte('created_at', sixMonthsAgo.toISOString())
+        .eq('status', 'valide')
         .order('created_at', { ascending: true })
 
       const revenusParMois = new Map<string, number>()
@@ -128,6 +132,7 @@ export function useRecentSouscriptions() {
           *,
           client:clients(*)
         `)
+        .eq('status', 'valide')
         .order('created_at', { ascending: false })
         .limit(5)
 

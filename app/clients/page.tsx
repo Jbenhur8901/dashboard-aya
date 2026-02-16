@@ -22,10 +22,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Client, Souscription } from '@/types/database.types'
-import { Search, Eye, Phone } from 'lucide-react'
+import { Search, Eye, Phone, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -87,6 +90,16 @@ export default function ClientsPage() {
     enabled: !!selectedClient,
   })
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedClients,
+    setCurrentPage,
+  } = useTablePagination(clients, [searchQuery])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -121,6 +134,34 @@ export default function ClientsPage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'clients',
+              sheetName: 'Clients',
+              columns: [
+                { header: 'Nom Complet', accessor: (row) => row.username || row.fullname || 'N/A' },
+                { header: 'Téléphone WhatsApp', accessor: (row) => row.whatsappnumber || 'N/A' },
+                { header: 'Profession', accessor: (row) => row.profession || 'N/A' },
+                { header: 'Ville', accessor: (row) => row.city || 'N/A' },
+                { header: 'Statut', accessor: (row) => row.status || 'N/A' },
+                { header: 'Souscriptions', accessor: (row) => row.souscription_count || 0 },
+                {
+                  header: 'Créé le',
+                  accessor: (row) => format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr }),
+                },
+              ],
+              rows: clients || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
@@ -149,7 +190,7 @@ export default function ClientsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                clients?.map((client) => (
+                paginatedClients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell className="font-medium">
                       {client.username || client.fullname || 'N/A'}
@@ -182,6 +223,14 @@ export default function ClientsPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

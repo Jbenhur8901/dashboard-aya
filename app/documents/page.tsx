@@ -24,6 +24,9 @@ import { Document } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Eye, FileText } from 'lucide-react'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function DocumentsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -45,6 +48,16 @@ export default function DocumentsPage() {
       return data || []
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedDocuments,
+    setCurrentPage,
+  } = useTablePagination(documents)
 
   const getFileIcon = (type: string | null) => {
     if (!type) return '📎'
@@ -71,9 +84,50 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="title-display">Documents</h1>
-        <p className="subtitle">Gérez tous les documents liés aux souscriptions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="title-display">Documents</h1>
+          <p className="subtitle">Gérez tous les documents liés aux souscriptions</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'documents',
+              sheetName: 'Documents',
+              columns: [
+                { header: 'Type', accessor: (row) => row.type || '—' },
+                { header: 'Nom', accessor: (row) => row.nom || '—' },
+                {
+                  header: 'Client',
+                  accessor: (row) => {
+                    const fullname =
+                      row.souscription?.client?.fullname ||
+                      row.souscription?.client?.username ||
+                      'N/A'
+                    const phone = row.souscription?.client?.whatsappnumber || 'N/A'
+                    return `${fullname} - ${phone}`
+                  },
+                },
+                {
+                  header: 'Produit',
+                  accessor: (row) => row.souscription?.producttype || 'N/A',
+                },
+                {
+                  header: 'Date',
+                  accessor: (row) =>
+                    row.created_at
+                      ? format(new Date(row.created_at), 'dd MMM yyyy HH:mm', { locale: fr })
+                      : 'N/A',
+                },
+              ],
+              rows: documents || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
       </div>
 
       {/* Statistics */}
@@ -147,16 +201,27 @@ export default function DocumentsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                documents?.map((document) => (
+                paginatedDocuments.map((document) => (
                   <TableRow key={document.id}>
                     <TableCell>
                       <span className="text-2xl">{getFileIcon(document.type)}</span>
                     </TableCell>
                     <TableCell className="font-medium">{document.nom}</TableCell>
                     <TableCell>
-                      {document.souscription?.client
-                        ? document.souscription.client.fullname
-                        : 'N/A'}
+                      {document.souscription?.client ? (
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {document.souscription.client.fullname ||
+                              document.souscription.client.username ||
+                              'N/A'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {document.souscription.client.whatsappnumber || 'N/A'}
+                          </span>
+                        </div>
+                      ) : (
+                        'N/A'
+                      )}
                     </TableCell>
                     <TableCell>
                       {document.souscription ? (
@@ -199,6 +264,14 @@ export default function DocumentsPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

@@ -34,10 +34,13 @@ import {
 import { CodePromo, ReductionType } from '@/types/database.types'
 import { format, isBefore } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useIsAdmin } from '@/hooks/use-user-profile'
 import { useAuditLog, AUDIT_ACTIONS } from '@/hooks/use-audit-log'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 type CodePromoDbWrite = {
   code: string
@@ -339,6 +342,16 @@ export default function CodesAgentsPage() {
     return matchesSearch && matchesStatus
   })
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedCodes,
+    setCurrentPage,
+  } = useTablePagination(filteredCodes, [searchQuery, statusFilter])
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -347,14 +360,52 @@ export default function CodesAgentsPage() {
           <p className="subtitle">Gérez les codes de vos agents commerciaux</p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button disabled={!(isAdmin || isSuperAdmin)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouveau Code
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportToXlsx({
+                filename: 'codes-agents',
+                sheetName: 'Codes Agents',
+                columns: [
+                  { header: 'Code', accessor: (row) => row.code || '—' },
+                  { header: 'Agent', accessor: (row) => row.agent || '—' },
+                  { header: 'Type de Reduction', accessor: (row) => row.type_reduction || '—' },
+                  { header: 'Valeur', accessor: (row) => row.valeur ?? '—' },
+                  {
+                    header: 'Date d\'Expiration',
+                    accessor: (row) =>
+                      row.expiration
+                        ? format(new Date(row.expiration), 'dd MMM yyyy', { locale: fr })
+                        : '—',
+                  },
+                  {
+                    header: 'Statut',
+                    accessor: (row) => {
+                      const expired = row.expiration ? isExpired(row.expiration) : false
+                      const actif = row.actif !== false
+                      if (!actif) return 'Inactif'
+                      return expired ? 'Expiré' : 'Actif'
+                    },
+                  },
+                  { header: 'Actif', accessor: (row) => (row.actif !== false ? 'Oui' : 'Non') },
+                ],
+                rows: filteredCodes,
+              })
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </Button>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={!(isAdmin || isSuperAdmin)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau Code
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
             <DialogHeader>
               <DialogTitle>Créer un Code Agent</DialogTitle>
               <DialogDescription>
@@ -439,8 +490,9 @@ export default function CodesAgentsPage() {
                 {createCodeMutation.isPending ? 'Creation...' : 'Creer le Code'}
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Edit Dialog */}
@@ -584,7 +636,7 @@ export default function CodesAgentsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCodes.map((code) => {
+                paginatedCodes.map((code) => {
                   const expired = code.expiration ? isExpired(code.expiration) : false
                   const actif = code.actif !== false
                   return (
@@ -654,6 +706,14 @@ export default function CodesAgentsPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { exportToXlsx } from '@/lib/export-xlsx'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -32,6 +33,9 @@ import { useToast } from '@/hooks/use-toast'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { Download } from 'lucide-react'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 type BooleanChoice = 'oui' | 'non' | ''
 
@@ -196,6 +200,16 @@ export default function EasySantePage() {
       })
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedRows,
+    setCurrentPage,
+  } = useTablePagination(rows, [search, dateFrom, dateTo])
 
   const selectedRow = useMemo(() => {
     return rows?.find((r: any) => r.id === selectedId) || null
@@ -409,6 +423,36 @@ export default function EasySantePage() {
         </CardContent>
       </Card>
 
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'easy-sante',
+              sheetName: 'Easy Sante',
+              columns: [
+                { header: 'Groupement', accessor: (row: any) => row.nom_du_groupement || 'N/A' },
+                { header: 'Contact', accessor: (row: any) => row.personne_de_contact || 'N/A' },
+                { header: 'Téléphone', accessor: (row: any) => row.telephone || 'N/A' },
+                { header: 'Prospect', accessor: (row: any) => row.nom_du_prospect || 'N/A' },
+                { header: 'Référence', accessor: (row: any) => row.reference || 'N/A' },
+                {
+                  header: 'Date',
+                  accessor: (row: any) =>
+                    row.created_at
+                      ? format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr })
+                      : 'N/A',
+                },
+              ],
+              rows: rows || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
@@ -437,7 +481,7 @@ export default function EasySantePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                rows?.map((row: any) => (
+                paginatedRows.map((row: any) => (
                   <TableRow key={row.id}>
                     <TableCell>{row.nom_du_groupement || 'N/A'}</TableCell>
                     <TableCell>{row.personne_de_contact || 'N/A'}</TableCell>
@@ -463,6 +507,14 @@ export default function EasySantePage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

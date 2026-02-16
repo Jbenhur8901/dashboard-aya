@@ -25,6 +25,9 @@ import { SouscriptionMrh } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Search } from 'lucide-react'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function MrhPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -88,6 +91,16 @@ export default function MrhPage() {
       return filtered as MrhRow[]
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedMrhs,
+    setCurrentPage,
+  } = useTablePagination(mrhs, [searchQuery, dateFrom, dateTo])
 
   const handleDownload = (url: string) => {
     const link = document.createElement('a')
@@ -159,16 +172,45 @@ export default function MrhPage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'souscriptions-mrh',
+              sheetName: 'MRH',
+              columns: [
+                { header: 'Nom', accessor: (row: MrhRow) => row.fullname || 'N/A' },
+                { header: 'Contact', accessor: (row: MrhRow) => row.contact || 'N/A' },
+                { header: 'Ville', accessor: (row: MrhRow) => row.ville || 'N/A' },
+                { header: 'Forfait', accessor: (row: MrhRow) => row.forfaitmrh || 'N/A' },
+                {
+                  header: 'Date',
+                  accessor: (row: MrhRow) =>
+                    row.created_at
+                      ? format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr })
+                      : 'N/A',
+                },
+              ],
+              rows: mrhs || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Voir document</TableHead>
                 <TableHead>Créé le</TableHead>
                 <TableHead>Mis à jour</TableHead>
                 <TableHead>Forfait MRH</TableHead>
                 <TableHead>Type document</TableHead>
-                <TableHead>Document</TableHead>
                 <TableHead>Nom complet</TableHead>
                 <TableHead>Couverture</TableHead>
                 <TableHead>Date de validité</TableHead>
@@ -193,20 +235,8 @@ export default function MrhPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                mrhs?.map((mrh) => (
+                paginatedMrhs.map((mrh) => (
                   <TableRow key={mrh.id}>
-                    <TableCell>
-                      {mrh.created_at
-                        ? format(new Date(mrh.created_at), 'dd MMM yyyy', { locale: fr })
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {mrh.updated_at
-                        ? format(new Date(mrh.updated_at), 'dd MMM yyyy', { locale: fr })
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>{mrh.forfaitmrh || 'N/A'}</TableCell>
-                    <TableCell>{mrh.typedocument || 'N/A'}</TableCell>
                     <TableCell>
                       {mrh.documenturl ? (
                         <Button
@@ -220,6 +250,18 @@ export default function MrhPage() {
                         'N/A'
                       )}
                     </TableCell>
+                    <TableCell>
+                      {mrh.created_at
+                        ? format(new Date(mrh.created_at), 'dd MMM yyyy', { locale: fr })
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {mrh.updated_at
+                        ? format(new Date(mrh.updated_at), 'dd MMM yyyy', { locale: fr })
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>{mrh.forfaitmrh || 'N/A'}</TableCell>
+                    <TableCell>{mrh.typedocument || 'N/A'}</TableCell>
                     <TableCell>{mrh.fullname || 'N/A'}</TableCell>
                     <TableCell>{mrh.coverage || 'N/A'}</TableCell>
                     <TableCell>{mrh.date_de_validite || 'N/A'}</TableCell>
@@ -233,6 +275,14 @@ export default function MrhPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

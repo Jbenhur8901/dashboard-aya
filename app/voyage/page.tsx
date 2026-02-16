@@ -25,6 +25,9 @@ import { SouscriptionVoyage } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Plane, Search } from 'lucide-react'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function VoyagePage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -91,6 +94,16 @@ export default function VoyagePage() {
       return filtered as VoyageRow[]
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedVoyages,
+    setCurrentPage,
+  } = useTablePagination(voyages, [searchQuery, dateFrom, dateTo])
 
   const formatCurrency = (value: number | string) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -173,11 +186,42 @@ export default function VoyagePage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'souscriptions-voyage',
+              sheetName: 'Voyage',
+              columns: [
+                { header: 'Nom', accessor: (row: VoyageRow) => row.full_name || 'N/A' },
+                { header: 'Passeport', accessor: (row: VoyageRow) => row.passport_number || 'N/A' },
+                { header: 'Téléphone', accessor: (row: VoyageRow) => row.numero_de_telephone || 'N/A' },
+                { header: 'Type', accessor: (row: VoyageRow) => row.type || 'N/A' },
+                { header: 'Prime TTC', accessor: (row: VoyageRow) => Number(row.prime_ttc) || 0 },
+                {
+                  header: 'Date',
+                  accessor: (row: VoyageRow) =>
+                    row.created_at
+                      ? format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr })
+                      : 'N/A',
+                },
+              ],
+              rows: voyages || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Voir document</TableHead>
                 <TableHead>Créé le</TableHead>
                 <TableHead>Mis à jour</TableHead>
                 <TableHead>Nom complet</TableHead>
@@ -194,7 +238,6 @@ export default function VoyagePage() {
                 <TableHead>Type</TableHead>
                 <TableHead>Prime</TableHead>
                 <TableHead>Couverture</TableHead>
-                <TableHead>Document</TableHead>
                 <TableHead>Code agent</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Profil</TableHead>
@@ -222,8 +265,21 @@ export default function VoyagePage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                voyages?.map((voyage) => (
+                paginatedVoyages.map((voyage) => (
                   <TableRow key={voyage.id}>
+                    <TableCell>
+                      {voyage.documenturl ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPreviewUrl(voyage.documenturl || null)}
+                        >
+                          Ouvrir
+                        </Button>
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {voyage.created_at
                         ? format(new Date(voyage.created_at), 'dd MMM yyyy', { locale: fr })
@@ -250,19 +306,6 @@ export default function VoyagePage() {
                       {voyage.prime_ttc ? formatCurrency(voyage.prime_ttc) : 'N/A'}
                     </TableCell>
                     <TableCell>{voyage.coverage || 'N/A'}</TableCell>
-                    <TableCell>
-                      {voyage.documenturl ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPreviewUrl(voyage.documenturl || null)}
-                        >
-                          Ouvrir
-                        </Button>
-                      ) : (
-                        'N/A'
-                      )}
-                    </TableCell>
                     <TableCell>{voyage.code_agent || 'N/A'}</TableCell>
                     <TableCell>{voyage.age ?? 'N/A'}</TableCell>
                     <TableCell>{voyage.profil || 'N/A'}</TableCell>
@@ -279,6 +322,14 @@ export default function VoyagePage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

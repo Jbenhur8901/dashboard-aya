@@ -25,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 type UserRow = {
   id: string
@@ -232,6 +234,16 @@ export default function UsersAdminPage() {
     })
   }, [users, search, roleFilter, statusFilter])
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedUsers,
+    setCurrentPage,
+  } = useTablePagination(filteredUsers, [search, roleFilter, statusFilter])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -319,7 +331,7 @@ export default function UsersAdminPage() {
                   <TableCell colSpan={7} className="text-center">Aucun utilisateur</TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((u) => (
+                paginatedUsers.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>{u.username}</TableCell>
@@ -390,6 +402,14 @@ export default function UsersAdminPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>

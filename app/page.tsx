@@ -15,7 +15,7 @@ import {
   useRevenusParMois,
   useRecentSouscriptions,
 } from '@/hooks/use-dashboard-data'
-import { FileText, TrendingUp, Clock, Users, ArrowUpRight, CreditCard } from 'lucide-react'
+import { FileText, TrendingUp, Clock, Users, ArrowUpRight, CreditCard, Download } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -33,6 +33,10 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { ProductType, SouscriptionStatus } from '@/types/database.types'
 import { useIsAdmin } from '@/hooks/use-user-profile'
+import { Button } from '@/components/ui/button'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 const PRODUCT_COLORS: Record<ProductType, string> = {
   'NSIA AUTO': '#0EA5E9',
@@ -85,6 +89,16 @@ export default function DashboardPage() {
     color: PRODUCT_COLORS[item.producttype as ProductType],
   })) || []
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedRecentSouscriptions,
+    setCurrentPage,
+  } = useTablePagination(recentSouscriptions)
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -117,7 +131,7 @@ export default function DashboardPage() {
         )}
         {!isUser && (
           <StatCard
-            title="Total MTN Mobile Money"
+            title="Total Mobile Money"
             value={statsLoading ? '...' : formatCurrency(stats?.total_mtn || 0)}
             icon={CreditCard}
           />
@@ -147,9 +161,6 @@ export default function DashboardPage() {
         <div className="surface p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-base font-semibold">Souscriptions par Type</h3>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Détails <ArrowUpRight className="h-3 w-3" />
-            </button>
           </div>
           <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -190,9 +201,6 @@ export default function DashboardPage() {
           <div className="surface p-6 animate-fade-up">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-semibold">Revenus des 6 Derniers Mois</h3>
-              <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Détails <ArrowUpRight className="h-3 w-3" />
-              </button>
             </div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -241,12 +249,51 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Subscriptions Table */}
-      <div className="surface overflow-hidden animate-fade-up">
+      <div className="surface animate-fade-up">
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-base font-semibold">Dernières Souscriptions</h3>
-          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            Voir tout <ArrowUpRight className="h-3 w-3" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                exportToXlsx({
+                  filename: 'dashboard-souscriptions',
+                  sheetName: 'Souscriptions',
+                  columns: [
+                    {
+                      header: 'Client',
+                      accessor: (row) =>
+                        row.client?.username || row.client?.fullname || 'N/A',
+                    },
+                    {
+                      header: 'Type',
+                      accessor: (row) =>
+                        PRODUCT_LABELS[row.producttype as ProductType] || 'N/A',
+                    },
+                    {
+                      header: 'Prime TTC',
+                      accessor: (row) => row.prime_ttc || 0,
+                    },
+                    {
+                      header: 'Statut',
+                      accessor: (row) =>
+                        STATUS_LABELS[(row.status || 'en_attente') as SouscriptionStatus],
+                    },
+                    {
+                      header: 'Date',
+                      accessor: (row) =>
+                        format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr }),
+                    },
+                  ],
+                  rows: recentSouscriptions || [],
+                })
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exporter
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -260,7 +307,7 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentSouscriptions?.map((souscription) => (
+              {paginatedRecentSouscriptions.map((souscription) => (
                 <TableRow
                   key={souscription.id}
                   className="hover:bg-muted/50 transition-colors"
@@ -297,6 +344,14 @@ export default function DashboardPage() {
             </TableBody>
           </Table>
         </div>
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          startItem={startItem}
+          endItem={endItem}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
   )

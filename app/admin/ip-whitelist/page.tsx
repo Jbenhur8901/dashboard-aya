@@ -27,9 +27,12 @@ import {
 } from '@/components/ui/dialog'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Plus, Trash2, Shield, Globe } from 'lucide-react'
+import { Plus, Trash2, Shield, Globe, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useIsAdmin } from '@/hooks/use-user-profile'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface IpWhitelist {
   id: string
@@ -68,6 +71,16 @@ export default function IpWhitelistPage() {
       return data || []
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedWhitelist,
+    setCurrentPage,
+  } = useTablePagination(whitelist)
 
   const createMutation = useMutation({
     mutationFn: async (data: Omit<IpWhitelist, 'id' | 'created_at' | 'created_by'>) => {
@@ -177,14 +190,38 @@ export default function IpWhitelistPage() {
           <p className="subtitle">Gérez les adresses IP autorisées à accéder à l&apos;application</p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter IP
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportToXlsx({
+                filename: 'ip-whitelist',
+                sheetName: 'Whitelist',
+                columns: [
+                  { header: 'Adresse IP', accessor: (row) => row.ip_address },
+                  { header: 'Description', accessor: (row) => row.description || '-' },
+                  { header: 'Type', accessor: (row) => (row.is_global ? 'Globale' : 'Specifique') },
+                  {
+                    header: 'Date d\'ajout',
+                    accessor: (row) => format(new Date(row.created_at), 'dd MMM yyyy HH:mm', { locale: fr }),
+                  },
+                ],
+                rows: whitelist || [],
+              })
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </Button>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter IP
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
             <DialogHeader>
               <DialogTitle>Ajouter une adresse IP</DialogTitle>
               <DialogDescription>
@@ -233,8 +270,9 @@ export default function IpWhitelistPage() {
                 {createMutation.isPending ? 'Ajout...' : 'Ajouter'}
               </Button>
             </form>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Info Card */}
@@ -282,7 +320,7 @@ export default function IpWhitelistPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                whitelist?.map((ip) => (
+                paginatedWhitelist.map((ip) => (
                   <TableRow key={ip.id}>
                     <TableCell className="font-mono">
                       {ip.ip_address}
@@ -318,6 +356,14 @@ export default function IpWhitelistPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>

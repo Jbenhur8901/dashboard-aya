@@ -25,6 +25,9 @@ import { SouscriptionIac } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Download, Search } from 'lucide-react'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function IacPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -92,6 +95,16 @@ export default function IacPage() {
       return filtered as IacRow[]
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedIacs,
+    setCurrentPage,
+  } = useTablePagination(iacs, [searchQuery, dateFrom, dateTo])
 
   const formatCurrency = (value: number | string) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -171,16 +184,46 @@ export default function IacPage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'souscriptions-iac',
+              sheetName: 'IAC',
+              columns: [
+                { header: 'Nom', accessor: (row: IacRow) => row.fullname || 'N/A' },
+                { header: 'Secteur', accessor: (row: IacRow) => row.secteuractivite || 'N/A' },
+                { header: 'Code Agent', accessor: (row: IacRow) => row.code_agent || 'N/A' },
+                { header: 'Prime TTC', accessor: (row: IacRow) => Number(row.prime_ttc) || 0 },
+                { header: 'Statut Pro', accessor: (row: IacRow) => row.statutpro || 'N/A' },
+                {
+                  header: 'Date',
+                  accessor: (row: IacRow) =>
+                    row.created_at
+                      ? format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr })
+                      : 'N/A',
+                },
+              ],
+              rows: iacs || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Voir document</TableHead>
                 <TableHead>Créé le</TableHead>
                 <TableHead>Mis à jour</TableHead>
                 <TableHead>Prime</TableHead>
                 <TableHead>Type document</TableHead>
-                <TableHead>Document</TableHead>
                 <TableHead>Nom complet</TableHead>
                 <TableHead>Couverture</TableHead>
                 <TableHead>Statut pro</TableHead>
@@ -208,8 +251,21 @@ export default function IacPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                iacs?.map((iac) => (
+                paginatedIacs.map((iac) => (
                   <TableRow key={iac.id}>
+                    <TableCell>
+                      {iac.documenturl ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPreviewUrl(iac.documenturl || null)}
+                        >
+                          Ouvrir
+                        </Button>
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
                     <TableCell>
                       {iac.created_at
                         ? format(new Date(iac.created_at), 'dd MMM yyyy', { locale: fr })
@@ -224,19 +280,6 @@ export default function IacPage() {
                       {iac.prime_ttc ? formatCurrency(iac.prime_ttc) : 'N/A'}
                     </TableCell>
                     <TableCell>{iac.typedocument || 'N/A'}</TableCell>
-                    <TableCell>
-                      {iac.documenturl ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPreviewUrl(iac.documenturl || null)}
-                        >
-                          Ouvrir
-                        </Button>
-                      ) : (
-                        'N/A'
-                      )}
-                    </TableCell>
                     <TableCell>{iac.fullname || 'N/A'}</TableCell>
                     <TableCell>{iac.coverage || 'N/A'}</TableCell>
                     <TableCell>{iac.statutpro || 'N/A'}</TableCell>
@@ -253,6 +296,14 @@ export default function IacPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

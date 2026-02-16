@@ -14,15 +14,18 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { BarChart3, TrendingUp, Tag, Search, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { BarChart3, TrendingUp, Tag, Search, Users, Download } from 'lucide-react'
 import { CodePromo } from '@/types/database.types'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 interface CodeTracking {
   code: string
   agent: string | null
   subscription_count: number
   total_revenue: number
-  commission: number
   conversion_rate: number
   last_subscription_at: string | null
   actif: boolean
@@ -67,6 +70,7 @@ export default function SuiviAgentsPage() {
       const { data, error } = await supabase
         .from('souscriptions')
         .select('codepromo, prime_ttc, status, created_at')
+        .eq('status', 'valide')
 
       if (error) throw error
       return (data || []) as SouscriptionRow[]
@@ -188,15 +192,11 @@ export default function SuiviAgentsPage() {
         const conversionRate = totalSubscriptionsOverall
           ? (stats.count / totalSubscriptionsOverall) * 100
           : 0
-        const commissionRate = typeof cp.valeur === 'number' ? cp.valeur : 0
-        const commission = (stats.revenue * commissionRate) / 100
-
         return {
           code: normalizedCode,
           agent,
           subscription_count: stats.count,
           total_revenue: stats.revenue,
-          commission,
           conversion_rate: conversionRate,
           last_subscription_at: stats.last_sub,
           actif: cp.actif !== false,
@@ -214,6 +214,16 @@ export default function SuiviAgentsPage() {
       (item.agent || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [codeTracking, searchQuery])
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedCodeTracking,
+    setCurrentPage,
+  } = useTablePagination(filteredCodeTracking, [searchQuery])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -339,8 +349,36 @@ export default function SuiviAgentsPage() {
 
       {/* Tracking Table */}
       <Card className="animate-fade-up">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Performance par Code</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              exportToXlsx({
+                filename: 'suivi-agents',
+                sheetName: 'Suivi Agents',
+                columns: [
+                  { header: 'Code', accessor: (row) => row.code },
+                  { header: 'Agent', accessor: (row) => row.agent || '—' },
+                  { header: 'Souscriptions', accessor: (row) => row.subscription_count },
+                  { header: 'Montant Encaisse', accessor: (row) => row.total_revenue },
+                  { header: 'Taux Conversion', accessor: (row) => `${row.conversion_rate.toFixed(1)}%` },
+                  {
+                    header: 'Derniere Souscription',
+                    accessor: (row) =>
+                      row.last_subscription_at
+                        ? new Date(row.last_subscription_at).toLocaleDateString('fr-FR')
+                        : '—',
+                  },
+                ],
+                rows: filteredCodeTracking,
+              })
+            }}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exporter
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -351,25 +389,24 @@ export default function SuiviAgentsPage() {
                 <TableHead>Souscriptions</TableHead>
                 <TableHead>Montant Encaisse</TableHead>
                 <TableHead>Taux Conversion</TableHead>
-                <TableHead>Commission</TableHead>
                 <TableHead>Derniere Souscription</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     Chargement...
                   </TableCell>
                 </TableRow>
               ) : filteredCodeTracking.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     {searchQuery ? 'Aucun code trouve' : 'Aucun code attribue'}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCodeTracking.map((item) => (
+                paginatedCodeTracking.map((item) => (
                   <TableRow key={item.code}>
                     <TableCell className="font-mono font-semibold">
                       {item.code}
@@ -395,9 +432,6 @@ export default function SuiviAgentsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(item.commission)}
-                    </TableCell>
-                    <TableCell>
                       {item.last_subscription_at
                         ? new Date(item.last_subscription_at).toLocaleDateString('fr-FR')
                         : '—'}
@@ -407,6 +441,14 @@ export default function SuiviAgentsPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>

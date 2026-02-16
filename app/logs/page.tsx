@@ -8,10 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
+import { exportToXlsx } from '@/lib/export-xlsx'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Download } from 'lucide-react'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 const SYSTEM_USER_ID = 'e8aaa1ee-9f75-4219-81a2-10b261c6bb46'
 
@@ -188,6 +192,16 @@ export default function LogsPage() {
     })
   }, [logs, dateFrom, dateTo, filterAgent, filterAction, filterTable])
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedLogs,
+    setCurrentPage,
+  } = useTablePagination(filteredLogs, [filterAgent, filterAction, filterTable, dateFrom, dateTo])
+
   return (
     <div className="space-y-6">
       <div>
@@ -269,6 +283,47 @@ export default function LogsPage() {
             </div>
           </div>
 
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                exportToXlsx({
+                  filename: 'logs',
+                  sheetName: 'Logs',
+                  columns: [
+                    {
+                      header: 'Date',
+                      accessor: (row) =>
+                        format(new Date(row.created_at), 'dd MMM yyyy HH:mm', { locale: fr }),
+                    },
+                    {
+                      header: 'Agent',
+                      accessor: (row) =>
+                        row.user_id === SYSTEM_USER_ID
+                          ? 'Système'
+                          : row.user?.full_name || row.user?.email || 'Utilisateur inconnu',
+                    },
+                    {
+                      header: 'Action',
+                      accessor: (row) => actionLabels[row.action] || row.action,
+                    },
+                    {
+                      header: 'Table',
+                      accessor: (row) =>
+                        row.table_name ? (tableLabels[row.table_name] || row.table_name) : '—',
+                    },
+                    { header: 'Record', accessor: (row) => row.record_id || '—' },
+                    { header: 'IP', accessor: (row) => row.ip_address || '—' },
+                  ],
+                  rows: filteredLogs,
+                })
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exporter
+            </Button>
+          </div>
+
           <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -292,7 +347,7 @@ export default function LogsPage() {
                   <TableCell colSpan={7} className="text-center">Aucun log</TableCell>
                 </TableRow>
               ) : (
-                filteredLogs.map((log) => {
+                paginatedLogs.map((log) => {
                   const isSystem = log.user_id === SYSTEM_USER_ID
                   const agentName = isSystem
                     ? 'Système'
@@ -327,6 +382,14 @@ export default function LogsPage() {
             </TableBody>
           </Table>
           </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

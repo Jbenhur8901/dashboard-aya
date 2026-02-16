@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import Image from 'next/image'
+import { useEffect, useMemo, useState } from 'react'
 import {
   LayoutDashboard,
   FileText,
@@ -20,109 +20,125 @@ import {
   Settings,
   UserCog,
   Zap,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { usePermissions } from '@/hooks/use-permissions'
 
-const allNavigation = [
+type NavPermission =
+  | 'view:dashboard'
+  | 'view:souscriptions'
+  | 'view:products'
+  | 'view:clients'
+  | 'view:transactions'
+  | 'view:codes_agents'
+  | 'view:documents'
+  | 'view:logs'
+  | 'manage:users'
+  | 'manage:settings'
+
+type NavLeaf = {
+  name: string
+  href: string
+  icon: any
+  permission: NavPermission
+}
+
+type NavGroup = {
+  name: string
+  icon: any
+  children: NavLeaf[]
+}
+
+const dashboardItem: NavLeaf = {
+  name: 'Dashboard',
+  href: '/',
+  icon: LayoutDashboard,
+  permission: 'view:dashboard',
+}
+
+const groupedNavigation: NavGroup[] = [
   {
-    name: 'Dashboard',
-    href: '/',
-    icon: LayoutDashboard,
-    permission: 'view:dashboard' as const,
-  },
-  {
-    name: 'Souscriptions',
-    href: '/souscriptions',
+    name: 'Activité',
     icon: FileText,
-    permission: 'view:souscriptions' as const,
+    children: [
+      { name: 'Souscriptions', href: '/souscriptions', icon: FileText, permission: 'view:souscriptions' },
+      { name: 'Clients', href: '/clients', icon: Users, permission: 'view:clients' },
+      { name: 'Transactions', href: '/transactions', icon: CreditCard, permission: 'view:transactions' },
+      { name: 'Documents', href: '/documents', icon: FolderOpen, permission: 'view:documents' },
+    ],
   },
   {
-    name: 'Auto',
-    href: '/auto',
+    name: 'Produits',
     icon: Car,
-    permission: 'view:products' as const,
+    children: [
+      { name: 'Auto', href: '/auto', icon: Car, permission: 'view:products' },
+      { name: 'Voyage', href: '/voyage', icon: Plane, permission: 'view:products' },
+      { name: 'MRH', href: '/mrh', icon: Home, permission: 'view:products' },
+      { name: 'IAC', href: '/iac', icon: ShieldCheck, permission: 'view:products' },
+      { name: 'Easy Santé', href: '/easy-sante', icon: HeartPulse, permission: 'view:products' },
+    ],
   },
   {
-    name: 'Voyage',
-    href: '/voyage',
-    icon: Plane,
-    permission: 'view:products' as const,
-  },
-  {
-    name: 'MRH',
-    href: '/mrh',
-    icon: Home,
-    permission: 'view:products' as const,
-  },
-  {
-    name: 'IAC',
-    href: '/iac',
-    icon: ShieldCheck,
-    permission: 'view:products' as const,
-  },
-  {
-    name: 'Easy Santé',
-    href: '/easy-sante',
-    icon: HeartPulse,
-    permission: 'view:products' as const,
-  },
-  {
-    name: 'Clients',
-    href: '/clients',
-    icon: Users,
-    permission: 'view:clients' as const,
-  },
-  {
-    name: 'Transactions',
-    href: '/transactions',
-    icon: CreditCard,
-    permission: 'view:transactions' as const,
-  },
-  {
-    name: 'Codes Agents',
-    href: '/codes-agents',
-    icon: Tag,
-    permission: 'view:codes_agents' as const,
-  },
-  {
-    name: 'Suivi Agents',
-    href: '/codes-agents/suivi',
+    name: 'Performance',
     icon: BarChart3,
-    permission: 'view:codes_agents' as const,
+    children: [
+      { name: 'Codes Agents', href: '/codes-agents', icon: Tag, permission: 'view:codes_agents' },
+      { name: 'Suivi Agents', href: '/codes-agents/suivi', icon: BarChart3, permission: 'view:codes_agents' },
+    ],
   },
   {
-    name: 'Documents',
-    href: '/documents',
-    icon: FolderOpen,
-    permission: 'view:documents' as const,
-  },
-  {
-    name: 'Logs',
-    href: '/logs',
-    icon: ClipboardList,
-    permission: 'view:logs' as const,
-  },
-  {
-    name: 'Utilisateurs',
-    href: '/admin/users',
-    icon: UserCog,
-    permission: 'manage:users' as const,
-  },
-  {
-    name: 'Whitelist IP',
-    href: '/admin/ip-whitelist',
+    name: 'Administration',
     icon: Settings,
-    permission: 'manage:settings' as const,
+    children: [
+      { name: 'Logs', href: '/logs', icon: ClipboardList, permission: 'view:logs' },
+      { name: 'Utilisateurs', href: '/admin/users', icon: UserCog, permission: 'manage:users' },
+      { name: 'Whitelist IP', href: '/admin/ip-whitelist', icon: Settings, permission: 'manage:settings' },
+    ],
   },
 ]
+
+function isPathActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
 
 export function Sidebar() {
   const pathname = usePathname()
   const { can, isLoading } = usePermissions()
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
 
-  // Filter navigation based on permissions
-  const navigation = allNavigation.filter((item) => can(item.permission))
+  const canViewDashboard = can(dashboardItem.permission)
+  const navigationGroups = useMemo(
+    () =>
+      groupedNavigation
+        .map((group) => ({
+          ...group,
+          children: group.children.filter((child) => can(child.permission)),
+        }))
+        .filter((group) => group.children.length > 0),
+    [can]
+  )
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev }
+      let hasChanges = false
+      navigationGroups.forEach((group) => {
+        const hasActiveChild = group.children.some((item) => isPathActive(pathname, item.href))
+        if (hasActiveChild) {
+          if (next[group.name] !== true) {
+            next[group.name] = true
+            hasChanges = true
+          }
+        } else if (!(group.name in next)) {
+          next[group.name] = false
+          hasChanges = true
+        }
+      })
+      return hasChanges ? next : prev
+    })
+  }, [navigationGroups, pathname])
 
   return (
     <div className="flex h-screen w-64 flex-col bg-card/80 backdrop-blur border-r">
@@ -140,38 +156,106 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-6 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : (
-          navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
+          <div className="space-y-1">
+            {canViewDashboard && (
               <Link
-                key={item.name}
-                href={item.href}
+                href={dashboardItem.href}
                 className={cn(
                   'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                  isActive
+                  isPathActive(pathname, dashboardItem.href)
                     ? 'bg-secondary text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                 )}
               >
-                <div className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground group-hover:text-foreground group-hover:bg-muted/80'
-                )}>
-                  <item.icon className="h-4 w-4" />
+                <div
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                    isPathActive(pathname, dashboardItem.href)
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground group-hover:text-foreground group-hover:bg-muted/80'
+                  )}
+                >
+                  <dashboardItem.icon className="h-4 w-4" />
                 </div>
-                <span>{item.name}</span>
-                {isActive && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+                <span>{dashboardItem.name}</span>
+                {isPathActive(pathname, dashboardItem.href) && (
+                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
               </Link>
-            )
-          })
+            )}
+
+            {navigationGroups.map((group) => {
+              const isGroupOpen = !!openGroups[group.name]
+              const hasActiveChild = group.children.some((item) => isPathActive(pathname, item.href))
+
+              return (
+                <div key={group.name} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenGroups((prev) => ({
+                        ...prev,
+                        [group.name]: !prev[group.name],
+                      }))
+                    }
+                    className={cn(
+                      'w-full group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                      hasActiveChild
+                        ? 'bg-secondary/80 text-foreground'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+                        hasActiveChild
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground group-hover:text-foreground group-hover:bg-muted/80'
+                      )}
+                    >
+                      <group.icon className="h-4 w-4" />
+                    </div>
+                    <span>{group.name}</span>
+                    <ChevronDown
+                      className={cn(
+                        'ml-auto h-4 w-4 transition-transform',
+                        isGroupOpen ? 'rotate-180' : 'rotate-0'
+                      )}
+                    />
+                  </button>
+
+                  {isGroupOpen && (
+                    <div className="ml-11 space-y-1 border-l pl-3">
+                      {group.children.map((item) => {
+                        const isActive = isPathActive(pathname, item.href)
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className={cn(
+                              'flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors',
+                              isActive
+                                ? 'bg-secondary text-foreground font-medium'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                            )}
+                          >
+                            <item.icon className="h-3.5 w-3.5" />
+                            <span>{item.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </nav>
 

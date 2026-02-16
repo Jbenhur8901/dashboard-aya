@@ -34,7 +34,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Transaction, TransactionStatus, PaymentMethod } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Eye, Trash2 } from 'lucide-react'
+import { Eye, Trash2, Download } from 'lucide-react'
 import { useTableSelection } from '@/hooks/use-table-selection'
 import { useUpdateStatus } from '@/hooks/use-update-status'
 import { useBulkUpdateStatus } from '@/hooks/use-bulk-update-status'
@@ -42,6 +42,9 @@ import { useDeleteItem } from '@/hooks/use-delete-item'
 import { useBulkDelete } from '@/hooks/use-bulk-delete'
 import { useIsAdmin } from '@/hooks/use-user-profile'
 import { useToast } from '@/hooks/use-toast'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 const STATUS_VARIANTS: Record<TransactionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
   en_cours: 'default',
@@ -112,6 +115,16 @@ export default function TransactionsPage() {
     },
   })
 
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedTransactions,
+    setCurrentPage,
+  } = useTablePagination(transactions, [statusFilter, methodFilter])
+
   // Multi-select state and hooks
   const {
     selectedIds,
@@ -123,7 +136,7 @@ export default function TransactionsPage() {
     someSelected,
     hasSelection,
   } = useTableSelection({
-    data: transactions || [],
+    data: paginatedTransactions,
     getItemId: (item) => item.id,
   })
 
@@ -288,6 +301,52 @@ export default function TransactionsPage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'transactions',
+              sheetName: 'Transactions',
+              columns: [
+                { header: 'Référence', accessor: (row) => row.reference || 'N/A' },
+                {
+                  header: 'Client',
+                  accessor: (row) =>
+                    row.souscription?.client?.username ||
+                    row.souscription?.client?.fullname ||
+                    'N/A',
+                },
+                { header: 'Montant', accessor: (row) => row.amount || 0 },
+                {
+                  header: 'Méthode de Paiement',
+                  accessor: (row) =>
+                    row.payment_method
+                      ? PAYMENT_METHOD_LABELS[row.payment_method as PaymentMethod]
+                      : 'N/A',
+                },
+                {
+                  header: 'Statut',
+                  accessor: (row) =>
+                    row.status
+                      ? STATUS_LABELS[row.status as TransactionStatus]
+                      : 'N/A',
+                },
+                {
+                  header: 'Date',
+                  accessor: (row) =>
+                    format(new Date(row.created_at), 'dd MMM yyyy HH:mm', { locale: fr }),
+                },
+              ],
+              rows: transactions || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         {/* Bulk Actions Toolbar */}
         {hasSelection && (
@@ -374,7 +433,7 @@ export default function TransactionsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions?.map((transaction) => (
+                paginatedTransactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
                       <Checkbox
@@ -452,6 +511,14 @@ export default function TransactionsPage() {
               </TableRow>
             </TableFooter>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 

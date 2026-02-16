@@ -26,6 +26,9 @@ import { SouscriptionAuto } from '@/types/database.types'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Search, Car, Download } from 'lucide-react'
+import { exportToXlsx } from '@/lib/export-xlsx'
+import { TablePagination } from '@/components/ui/table-pagination'
+import { useTablePagination } from '@/hooks/use-table-pagination'
 
 export default function AutoPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -78,6 +81,16 @@ export default function AutoPage() {
       return filtered as SouscriptionAuto[]
     },
   })
+
+  const {
+    currentPage,
+    totalPages,
+    startItem,
+    endItem,
+    totalItems,
+    paginatedItems: paginatedAutos,
+    setCurrentPage,
+  } = useTablePagination(autos, [searchQuery, dateFrom, dateTo])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -160,11 +173,41 @@ export default function AutoPage() {
       </Card>
 
       {/* Table */}
+      <div className="flex items-center justify-end">
+        <Button
+          variant="outline"
+          onClick={() => {
+            exportToXlsx({
+              filename: 'souscriptions-auto',
+              sheetName: 'Auto',
+              columns: [
+                { header: 'Client', accessor: (row) => row.fullname || 'N/A' },
+                { header: 'Téléphone', accessor: (row) => row.phone || 'N/A' },
+                { header: 'Immatriculation', accessor: (row) => row.immatriculation || 'N/A' },
+                { header: 'Marque', accessor: (row) => row.brand || 'N/A' },
+                { header: 'Modèle', accessor: (row) => row.model || 'N/A' },
+                { header: 'Prime TTC', accessor: (row) => row.prime_ttc || 0 },
+                {
+                  header: 'Date',
+                  accessor: (row) =>
+                    format(new Date(row.created_at), 'dd MMM yyyy', { locale: fr }),
+                },
+              ],
+              rows: autos || [],
+            })
+          }}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exporter
+        </Button>
+      </div>
+
       <Card className="animate-fade-up">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Voir document</TableHead>
                 <TableHead>Créé le</TableHead>
                 <TableHead>Nom complet</TableHead>
                 <TableHead>Immatriculation</TableHead>
@@ -179,7 +222,6 @@ export default function AutoPage() {
                 <TableHead>Profession</TableHead>
                 <TableHead>Prime</TableHead>
                 <TableHead>Couverture</TableHead>
-                <TableHead>Document</TableHead>
                 <TableHead>Mis à jour</TableHead>
               </TableRow>
             </TableHeader>
@@ -197,9 +239,22 @@ export default function AutoPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                autos?.map((auto) => {
+                paginatedAutos.map((auto) => {
                   return (
                     <TableRow key={auto.id}>
+                      <TableCell className="max-w-[220px] truncate">
+                        {auto.documenturl ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPreviewUrl(auto.documenturl || null)}
+                          >
+                            Ouvrir
+                          </Button>
+                        ) : (
+                          'N/A'
+                        )}
+                      </TableCell>
                       <TableCell>
                         {auto.created_at
                           ? format(new Date(auto.created_at), 'dd MMM yyyy', { locale: fr })
@@ -222,19 +277,6 @@ export default function AutoPage() {
                           : 'N/A'}
                       </TableCell>
                       <TableCell>{auto.coverage || 'N/A'}</TableCell>
-                      <TableCell className="max-w-[220px] truncate">
-                        {auto.documenturl ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPreviewUrl(auto.documenturl || null)}
-                          >
-                            Ouvrir
-                          </Button>
-                        ) : (
-                          'N/A'
-                        )}
-                      </TableCell>
                       <TableCell>
                         {auto.updated_at
                           ? format(new Date(auto.updated_at), 'dd MMM yyyy', { locale: fr })
@@ -246,6 +288,14 @@ export default function AutoPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            startItem={startItem}
+            endItem={endItem}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 
