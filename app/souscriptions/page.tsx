@@ -59,11 +59,12 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
   'NSIA INDIVIDUEL ACCIDENTS': 'IAC',
 }
 
-const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
+const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'info'> = {
   en_cours: 'default',
   valide: 'success',
   expirée: 'secondary',
   annulée: 'destructive',
+  produit: 'info',
   en_attente: 'warning',
 }
 
@@ -72,6 +73,7 @@ const STATUS_LABELS: Record<SouscriptionStatus, string> = {
   valide: 'Validée',
   expirée: 'Expirée',
   annulée: 'Annulée',
+  produit: 'Produit',
   en_attente: 'En attente',
 }
 
@@ -271,6 +273,7 @@ export default function SouscriptionsPage() {
                 <SelectItem value="valide">Validée</SelectItem>
                 <SelectItem value="expirée">Expirée</SelectItem>
                 <SelectItem value="annulée">Annulée</SelectItem>
+                <SelectItem value="produit">Produit</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>
@@ -359,6 +362,7 @@ export default function SouscriptionsPage() {
                     <SelectItem value="valide">Validée</SelectItem>
                     <SelectItem value="expirée">Expirée</SelectItem>
                     <SelectItem value="annulée">Annulée</SelectItem>
+                    <SelectItem value="produit">Produit</SelectItem>
                     <SelectItem value="en_attente">En attente</SelectItem>
                   </SelectContent>
                 </Select>
@@ -561,6 +565,7 @@ export default function SouscriptionsPage() {
                       <SelectItem value="valide">Validée</SelectItem>
                       <SelectItem value="expirée">Expirée</SelectItem>
                       <SelectItem value="annulée">Annulée</SelectItem>
+                      <SelectItem value="produit">Produit</SelectItem>
                       <SelectItem value="en_attente">En attente</SelectItem>
                     </SelectContent>
                   </Select>

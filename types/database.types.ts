@@ -10,6 +10,7 @@ export type SouscriptionStatus =
   | 'valide'
   | 'expirée'
   | 'annulée'
+  | 'produit'
   | 'en_attente'
 
 export type PaymentMethod =
@@ -29,6 +30,7 @@ export type TransactionStatus =
   | 'valide'
   | 'expirée'
   | 'annulée'
+  | 'produit'
   | 'en_attente'
 
 export type ReductionType = 'pourcentage' | 'montant_fixe'

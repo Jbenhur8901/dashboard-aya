@@ -46,11 +46,12 @@ import { exportToXlsx } from '@/lib/export-xlsx'
 import { TablePagination } from '@/components/ui/table-pagination'
 import { useTablePagination } from '@/hooks/use-table-pagination'
 
-const STATUS_VARIANTS: Record<TransactionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
+const STATUS_VARIANTS: Record<TransactionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'info'> = {
   en_cours: 'default',
   valide: 'success',
   expirée: 'secondary',
   annulée: 'destructive',
+  produit: 'info',
   en_attente: 'warning',
 }
 
@@ -59,6 +60,7 @@ const STATUS_LABELS: Record<TransactionStatus, string> = {
   valide: 'Validée',
   expirée: 'Expirée',
   annulée: 'Annulée',
+  produit: 'Produit',
   en_attente: 'En attente',
 }
 
@@ -280,6 +282,7 @@ export default function TransactionsPage() {
                 <SelectItem value="valide">Validée</SelectItem>
                 <SelectItem value="expirée">Expirée</SelectItem>
                 <SelectItem value="annulée">Annulée</SelectItem>
+                <SelectItem value="produit">Produit</SelectItem>
                 <SelectItem value="en_attente">En attente</SelectItem>
               </SelectContent>
             </Select>
@@ -370,6 +373,7 @@ export default function TransactionsPage() {
                     <SelectItem value="valide">Validée</SelectItem>
                     <SelectItem value="expirée">Expirée</SelectItem>
                     <SelectItem value="annulée">Annulée</SelectItem>
+                    <SelectItem value="produit">Produit</SelectItem>
                     <SelectItem value="en_attente">En attente</SelectItem>
                   </SelectContent>
                 </Select>
@@ -605,6 +609,7 @@ export default function TransactionsPage() {
                       <SelectItem value="valide">Validée</SelectItem>
                       <SelectItem value="expirée">Expirée</SelectItem>
                       <SelectItem value="annulée">Annulée</SelectItem>
+                      <SelectItem value="produit">Produit</SelectItem>
                       <SelectItem value="en_attente">En attente</SelectItem>
                     </SelectContent>
                   </Select>

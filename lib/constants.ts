@@ -23,11 +23,12 @@ export const PRODUCT_FULL_LABELS: Record<ProductType, string> = {
 }
 
 // Status Mappings
-export const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
+export const STATUS_VARIANTS: Record<SouscriptionStatus, 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'info'> = {
   en_cours: 'default',
   valide: 'success',
   expirée: 'secondary',
   annulée: 'destructive',
+  produit: 'info',
   en_attente: 'warning',
 }
 
@@ -36,6 +37,7 @@ export const STATUS_LABELS: Record<SouscriptionStatus, string> = {
   valide: 'Validée',
   expirée: 'Expirée',
   annulée: 'Annulée',
+  produit: 'Produit',
   en_attente: 'En attente',
 }
 
