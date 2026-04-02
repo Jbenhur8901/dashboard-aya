@@ -184,20 +184,6 @@ export default function MfaVerifyPage() {
               </p>
             </div>
           )}
-          <div className="mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                supabase.auth.signOut().finally(() => {
-                  window.location.href = '/login'
-                })
-              }}
-            >
-              Se déconnecter
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
