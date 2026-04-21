@@ -32,9 +32,9 @@ import {
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Souscription, ProductType, SouscriptionStatus } from '@/types/database.types'
-import { format } from 'date-fns'
+import { endOfDay, format, startOfDay, subDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { BarChart3, Eye, Search, Trash2, TrendingUp, Download } from 'lucide-react'
+import { BarChart3, CalendarDays, Eye, Search, Trash2, TrendingUp, Download } from 'lucide-react'
 import { useTableSelection } from '@/hooks/use-table-selection'
 import { useUpdateStatus } from '@/hooks/use-update-status'
 import { useBulkUpdateStatus } from '@/hooks/use-bulk-update-status'
@@ -190,6 +190,19 @@ export default function SouscriptionsPage() {
 
   const validatedSouscriptions = (souscriptions || []).filter((item) => item.status === 'valide')
   const totalSouscriptions = validatedSouscriptions.length
+  const todayStart = startOfDay(new Date())
+  const todayEnd = endOfDay(new Date())
+  const todaySouscriptions = validatedSouscriptions.filter((s) => {
+    const createdAt = new Date(s.created_at)
+    return createdAt >= todayStart && createdAt <= todayEnd
+  })
+  const souscriptionsParJour = todaySouscriptions.length
+  const last30DaysStart = startOfDay(subDays(new Date(), 29))
+  const last30DaysSouscriptions = validatedSouscriptions.filter((s) => {
+    const createdAt = new Date(s.created_at)
+    return createdAt >= last30DaysStart && createdAt <= todayEnd
+  })
+  const souscriptions30DerniersJours = last30DaysSouscriptions.length
   const totalRevenue = (transactionsValidees || []).reduce(
     (sum, item) => sum + (Number(item.amount) || 0),
     0
@@ -204,7 +217,7 @@ export default function SouscriptionsPage() {
 
       {/* Summary Cards */}
       {!isUser && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="animate-fade-up">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Souscriptions</CardTitle>
@@ -215,6 +228,25 @@ export default function SouscriptionsPage() {
               <p className="text-xs text-muted-foreground">
                 Souscriptions validées dans la vue actuelle
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className="animate-fade-up">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Souscriptions / jour</CardTitle>
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">Aujourd&apos;hui</div>
+                  <div className="text-2xl font-bold tabular-nums">{souscriptionsParJour}</div>
+                </div>
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">30 derniers jours</div>
+                  <div className="text-2xl font-bold tabular-nums">{souscriptions30DerniersJours}</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
