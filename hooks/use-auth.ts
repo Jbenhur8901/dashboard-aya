@@ -90,36 +90,28 @@ export function useAuth() {
     departement?: string
     phone?: string
   }) => {
-    // Step 1: Create auth user with only email and password
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+    // Call server-side API to handle signup with service role
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        full_name: userInfo?.full_name,
+      }),
     })
 
-    if (error) throw error
-
-    // Step 2: Update public.users table with additional info
-    if (data.user && userInfo) {
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          username: userInfo.username,
-          full_name: userInfo.full_name,
-          last_name: userInfo.last_name,
-          fonction: userInfo.fonction,
-          departement: userInfo.departement,
-          phone: userInfo.phone,
-        })
-        .eq('id', data.user.id)
-
-      if (updateError) {
-        console.error('Error updating user info:', updateError)
-        // Don't throw - user is already created, just log the error
-      }
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Erreur lors de l\'inscription')
     }
 
+    const data = await response.json()
+
     // Auto-login after signup
-    if (data.user) {
+    if (data.success) {
       window.location.href = '/'
     }
     return data

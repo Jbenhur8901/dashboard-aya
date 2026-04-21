@@ -27,6 +27,9 @@ import {
 } from '@/components/ui/select'
 import { TablePagination } from '@/components/ui/table-pagination'
 import { useTablePagination } from '@/hooks/use-table-pagination'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Plus } from 'lucide-react'
+import { SignupForm } from '@/components/auth/signup-form'
 
 type UserRow = {
   id: string
@@ -50,6 +53,7 @@ export default function UsersAdminPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -262,9 +266,31 @@ export default function UsersAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="title-display">Utilisateurs</h1>
-        <p className="subtitle">Gérez l’accès et la gouvernance des comptes</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="title-display">Utilisateurs</h1>
+          <p className="subtitle">Gérez l'accès et la gouvernance des comptes</p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg">
+              <Plus className="mr-2 h-5 w-5" />
+              Ajouter un utilisateur
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="w-full max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
+            </DialogHeader>
+            <SignupForm 
+              isAdmin={true}
+              onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+                setIsAddDialogOpen(false)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card className="animate-fade-up">

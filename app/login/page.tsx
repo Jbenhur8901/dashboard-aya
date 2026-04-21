@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -83,12 +82,6 @@ export default function LoginPage() {
               {isLoading ? 'Connexion...' : 'Se connecter'}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Pas encore de compte ? </span>
-            <Link href="/signin" className="font-medium text-foreground hover:underline">
-              S&apos;inscrire
-            </Link>
-          </div>
           <div className="mt-4 text-center text-xs text-muted-foreground">
             Powered by Nodes Technology
           </div>
